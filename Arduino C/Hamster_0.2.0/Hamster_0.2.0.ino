@@ -1,10 +1,12 @@
 /* Hamster 0.20 created by Peter Chau
    Start Date: June 5, 2015
    Project: Alpha
-   Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder
 
    Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward. 
+   
    When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
+
+   Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder
 */
 
 
@@ -22,17 +24,17 @@ unsigned int ultraSensorRaw; // will store raw ultrasensor range finder distance
 int ultraSensorCM[1]; // will stored distance from object in cm
 
 /* Drive Train constant and variables */
-const int rightMotor1 = 11;   //PWM control Right Motor -
-const int rightMotor2 = 10;   //PWM control Right Motor +
-const int leftMotor1 = 5;  //PWM control Left Motor +
-const int leftMotor2 = 6;  //PWM control Left Motor -
-int driveInstruction = random(3); // Random initial command
+const int rightMotor1 = 11;   // PWM control Right Motor -
+const int rightMotor2 = 10;   // PWM control Right Motor +
+const int leftMotor1 = 5;  // PWM control Left Motor +
+const int leftMotor2 = 6;  // PWM control Left Motor -
+int driveInstruction = 0; // Stop as initial command
 int dutyCycle = 0; // Set initial 0% duty cycle PWM
 int motorSpeed;
 
 /* Status LED constants and variables */
 const int statusLED[] = {4, 2, 1}; // Array for Status LED with pins for red, green, and blue
-int status = 0;
+int status;
 
 /* Neural Network constants and variables */
 const int modeButton = 8; // Momentary switch for putting Hamster in learn mode
@@ -40,7 +42,7 @@ const int modeLED = 9; // LED to indicate what mode we are in
 int modeState = LOW; // Set inital state to drive mode (learn mode off)
 int lastModeState = LOW; // Previous mode
 float probability[] = {0.200, 0.200, 0.200, 0.200, 0.200}; // Set equal initial probabilities
-int maxAttempts = 100; // Set max attempts to learn
+int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
 long lastDebounceTime = 0;  // the last time the output pin was toggled
 long debounceDelay = 250;    // the debounce time; increase if the output flickers
@@ -50,15 +52,18 @@ NewPing ultraSensor(ultraSensorTriggerPin, ultraSensorEchoPin, maxDistance); // 
 
 void setup() {
   Serial.begin(9600);             // Start Serial connection
-  pinMode(modeButton, INPUT); // Initialize the pushbutton pin as an input
+  pinMode(modeButton, INPUT); // Initialize mode button and LED
+  pinMode(modeLED, OUTPUT);
+  
   /* Attach the motors to the input pins: */
   driver.attachMotorA(rightMotor1, rightMotor2);
   driver.attachMotorB(leftMotor1, leftMotor2);
+  
   /* Attach status LED to output pins */
   for (int x = 0; x < 3; x++) {
     pinMode(statusLED[x], OUTPUT);
   }
-  pinMode(modeLED, OUTPUT);
+  
   Serial.println("H A M S T E R v0.2 <3\n");
   statusLed(0); // Set status LED to Ready (green)
 }
@@ -80,12 +85,14 @@ void loop() {
   unsigned long currentMillis = millis(); //record current time
   if (currentMillis - pingTimer > pingSpeed) { // save the last time you pinged
     pingTimer += pingSpeed; // update time since last ping
-    statusLed(2); // Object avoidance status (light red)
+    statusLed(4); // Ping status (light blue)
     ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
-    ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm and print result (0 = outside set distance range)
   }
+  
   /* Hamster checks if ultraSensor sees anything 40 cm in front of it, and rotates right if it does. Otherwise, Hamster drives forward.*/
+  ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm and print result (0 = outside set distance range)
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
+    statusLed(1); // Object Avoidance status (Red)
     /* Print to Serial ultraSensorCM */
     Serial.print("Distance to Closest Object: ");
     Serial.print(ultraSensorCM[0]);
@@ -98,10 +105,14 @@ void loop() {
 
     /* Set to Learning Mode if mode button is pressed*/
     if (modeState == HIGH) {
+      
       /* Use Neural Network if Hamster tried to learn less than max attempts limit */
       if ( learningAttempts < maxAttempts) {
         digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
         Serial.println("Learning Mode");
+        Serial.println("Learning Attempts: "); // Print current attempts
+        Serial.print(learningAttempts);
+        Serial.print("\n");
         ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
         ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
 
@@ -112,7 +123,7 @@ void loop() {
             } else {
               probability[x] = probability[x] + 0.0025;
             }
-            status = 2; // Object avoidance status (blue)
+            status = 5; // Action Failed status (light red)
           }
         }
         else if (ultraSensorCM[1] < ultraSensorCM[0]) {
@@ -122,7 +133,7 @@ void loop() {
             } else {
               probability[x] = probability[x] + 0.0025;
             }
-            status = 2; // Object avoidance status (blue)
+            status = 5; // Action Failed status (light red)
           }
         }
         else {
@@ -132,9 +143,10 @@ void loop() {
             } else {
               probability[x] = probability[x] - 0.0025;
             }
-            status = 3; // Object avoidance status (purple)
+            status = 3; // Action Success status (purple)
           }
         }
+        
         Serial.println("Probability: "); // Print current drive train probabilities
         for (int x = 0; x < 5; x++) {
           Serial.print(probability[x]);
@@ -142,25 +154,24 @@ void loop() {
         }
         Serial.print("\t(Stop, Forward, Backwards, Rotate Right, Rotate Left)\n");
 
-        Serial.print("Learning Attempts: "); // Print current attempts
-        Serial.print(learningAttempts);
-        Serial.print("\n");
-        learningAttempts++;
+        learningAttempts++; // Increase learning tracker
       }
     }
   } else {
-    driveTrain(1, 75); // Go forwards at 75% duty cycle
-    status = 0; // Ready status (green)
+    // Go forwards at 85% duty cycle
+    driveInstruction = 1;
+    dutyCycle = 85;
+    driveTrain(driveInstruction, dutyCycle); 
+    status = 2; // Wander status (Blue)
   }
-
   statusLed(status);
-  Serial.println("--------------------------------------------\n");
+  Serial.println("~~~\n");
 
+/* Should learning mode be switched off? */
   if (modeState == LOW || learningAttempts >= maxAttempts) {
     digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
   }
   lastModeState = reading; // update last mode state
-
 } // loop() end
 
 /* Drive Train for 2 motors on opposite sides */
@@ -260,8 +271,8 @@ void statusLed(int status) {
 
 /* Weighted Random Choice function  */
 int weightedRandom(float* weights) {
-  float seed = random(10); // seed the countdown
-  float choice = seed * 0.10; // reduce the seed and save into countdown
+  float seed = random(3.14); // seed the countdown with pi (yum)
+  float choice = seed * 0.15; // reduce the seed and save into countdown
   for (int x = 0; x < 5; x++) { // minus each probability from choice
     choice -= weights[x];
     if (choice < 0) {
