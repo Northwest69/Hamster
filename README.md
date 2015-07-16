@@ -18,6 +18,7 @@ Make hamster drive staight
 Make Hamster look around then determine the best direction to drive
 Add exit AAN if a probability threshold is reached
 Create lower limit for probabilities
+Add instruction buffer
 
 Log:
 7/15/2015
@@ -68,8 +69,7 @@ Installed DVR8833 library
 Mapped dutyCycle to motorSpeed
 I seem to have fired my Arduino UNO. Computer won't recognize it however when plugged into the wall via USB, the board works fine.
 
-Functions
-
+Functions:
 void driveTrain(int instruction, int dutyCycle)
 	Instructions
 		0	Stop
