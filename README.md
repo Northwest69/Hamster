@@ -10,19 +10,20 @@ When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the p
 Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder
 
 To do:
-
-Make Hamster look around then determine the best direction to drive
+Add mode switch
 Install compass
-Make hamster drive staight
 Add On/Off switch and function
 Add On/Off LED indicator
+Make hamster drive staight
+Make Hamster look around then determine the best direction to drive
 Add exit AAN if a probability threshold is reached
-Add mode switch
 Create lower limit for probabilities
-Restructure code blocks into functions
-Test Hamster at learningAttempts = 100
 
 Log:
+7/15/2015
+Added Debounce 2 library to add functionallity to debounce buttons. Perhaps this can be used to buffer actions
+Test Hamster at learningAttempts = 100, increased to 500. This works very well.
+
 7/13/2015
 The issue was the USB cable. It is now fixed!
 Changed neural network adjustments to small decreases and increases (from 100% to 1%, and 33% to 0.33%)
