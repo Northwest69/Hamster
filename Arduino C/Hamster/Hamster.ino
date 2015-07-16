@@ -42,6 +42,9 @@ const int modeLED = 9; // LED to indicate what mode we are in
 int modeState = LOW; // Set inital state to drive mode (learn mode off)
 int lastModeState = LOW; // Previous mode
 float probability[] = {0.200, 0.200, 0.200, 0.200, 0.200}; // Set equal initial probabilities
+float probabilityThreshold = 0.75; // Set max probability threshold to 75%
+float probabilityError = 0.01; // Set probability error to 1%
+int probabilityCheck = 0; // Counter for checking if probabilities high threshold
 int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
 
@@ -106,8 +109,17 @@ void loop() {
         Serial.println("Learning Attempts: "); // Print current attempts
         Serial.print(learningAttempts);
         Serial.print("\n");
-        ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
-        ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
+        
+        /* Check if any probability has reached 75% */
+        for (int x = 0; x < 0; x++){
+          if (probability[x] >= probabilityThreshold - probabilityError){
+             probabilityCheck++;
+             Serial.println("Probability Threshold Reached");
+          }
+        } 
+        if (probabilityCheck == 0) {
+            ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
+            ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
 
         if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
           for (int x = 0; x < 5; x++) { // Decrease drive instruction's probability
@@ -150,9 +162,10 @@ void loop() {
         learningAttempts++; // Increase learning tracker
       }
     }
+   }
   } else {
     // Go forwards at 85% duty cycle
-    driveInstruction = 1;
+    driveInstruction = 1; // Drive Forwards
     dutyCycle = 85;
     driveTrain(driveInstruction, dutyCycle); 
     status = 2; // Wander status (Blue)
