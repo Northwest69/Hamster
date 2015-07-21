@@ -1,5 +1,4 @@
-Hamster 0.2.0 
-Created by Peter Chau
+Hamster 0.3.0 created by Peter Chau
 Start Date: June 5, 2015
 Project: Alpha
 
@@ -7,7 +6,9 @@ Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it
 
 When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
 
-Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder
+Data is sent to PC via bluetooth serial terminal.
+
+Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06
 
 To do:
 Add mode switch
@@ -16,14 +17,22 @@ Add On/Off switch and function
 Add On/Off LED indicator
 Make hamster drive staight
 Make Hamster look around then determine the best direction to drive
-Add exit AAN if a probability threshold is reached
 Create lower limit for probabilities
 Add instruction buffer
+Allow Arduino to Receive Commands via bluetooth
+Make robot wait for bluetooth connection before it starts moving
+Read/Write probabilities to computer
 
 Log:
+7/21/2015
+Add Bluetooth functionality via HC-06 Bluetooth Shield
+	Sends data to computer
+	Formatted Serial data
+
 7/15/2015
-Added Debounce 2 library to add functionallity to debounce buttons. Perhaps this can be used to buffer actions
+Added Debounce 2 library to add functionality to debounce buttons. Perhaps this can be used to buffer actions
 Test Hamster at learningAttempts = 100, increased to 500. This works very well.
+Add exit AAN if a probability threshold is reached
 
 7/13/2015
 The issue was the USB cable. It is now fixed!

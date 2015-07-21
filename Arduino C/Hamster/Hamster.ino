@@ -1,4 +1,4 @@
-/* Hamster 0.2.1 created by Peter Chau
+/* Hamster 0.3.0 created by Peter Chau
    Start Date: June 5, 2015
    Project: Alpha
 
@@ -6,7 +6,9 @@
    
    When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
 
-   Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder
+   Data is sent to PC via bluetooth serial terminal.
+
+   Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06
 */
 
 #include <Bounce2.h> // Include Bounce 2 to handle button bounce
@@ -33,7 +35,7 @@ int dutyCycle = 0; // Set initial 0% duty cycle PWM
 int motorSpeed;
 
 /* Status LED constants and variables */
-const int statusLED[] = {4, 2, 1}; // Array for Status LED with pins for red, green, and blue
+const int statusLED[] = {4, 2, 3}; // Array for Status LED with pins for red, green, and blue
 int status;
 
 /* Neural Network constants and variables */
@@ -68,7 +70,7 @@ void setup() {
     pinMode(statusLED[x], OUTPUT);
   }
   
-  Serial.println("H A M S T E R v0.2 <3\n");
+  Serial.println("H A M S T E R v0.3.0 <3\n");
   statusLed(0); // Set status LED to Ready (green)
 }
 
@@ -106,9 +108,8 @@ void loop() {
       if ( learningAttempts < maxAttempts) {
         digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
         Serial.println("Learning Mode");
-        Serial.println("Learning Attempts: "); // Print current attempts
-        Serial.print(learningAttempts);
-        Serial.print("\n");
+        Serial.print("Learning Attempts: "); // Print current attempts
+        Serial.println(learningAttempts);
         
         /* Check if any probability has reached 75% */
         for (int x = 0; x < 0; x++){
@@ -152,12 +153,12 @@ void loop() {
           }
         }
         
-        Serial.println("Probability: "); // Print current drive train probabilities
+        Serial.print("Probability: "); // Print current drive train probabilities
         for (int x = 0; x < 5; x++) {
           Serial.print(probability[x]);
-          Serial.print("\t");
+          Serial.print(" ");
         }
-        Serial.print("\t(Stop, Forward, Backwards, Rotate Right, Rotate Left)\n");
+        Serial.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
 
         learningAttempts++; // Increase learning tracker
       }
@@ -171,7 +172,7 @@ void loop() {
     status = 2; // Wander status (Blue)
   }
   statusLed(status);
-  Serial.println("~~~\n");
+  Serial.println("\n~~~~~~~~~~\n");
 
 /* Should learning mode be switched off? */
   if (modeState == LOW || learningAttempts >= maxAttempts) {
@@ -186,31 +187,31 @@ void driveTrain(int instruction, int dutyCycle) {
   /* Drive Train data */
   Serial.print("Duty Cycle: ");
   Serial.print(dutyCycle);
-  Serial.print("%\n");
+  Serial.print("%\t");
 
   switch (instruction) {
     case 0: // Stop
-      Serial.println("Stop\n");
+      Serial.print("Stop\n");
       driver.motorAStop();
       driver.motorBStop();
       break;
     case 1: // Forward
-      Serial.println("Forward\n");
+      Serial.print("Forward\n");
       driver.motorAForward(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
     case 2: // Backwards
-      Serial.println("Backward\n");
+      Serial.print("Backward\n");
       driver.motorAReverse(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
     case 3: // Rotate right
-      Serial.println("Rotate Right\n");
+      Serial.print("Rotate Right\n");
       driver.motorAReverse(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
     case 4: // Rotate left
-      Serial.println("Rotate Left\n");
+      Serial.print("Rotate Left\n");
       driver.motorAForward(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
@@ -277,7 +278,7 @@ void statusLed(int status) {
 /* Weighted Random Choice function  */
 int weightedRandom(float* weights) {
   float seed = random(3.14); // seed the countdown with pi (yum)
-  float choice = seed * 0.15; // reduce the seed and save into countdown
+  float choice = seed * 0.75; // reduce the seed and save into countdown
   for (int x = 0; x < 5; x++) { // minus each probability from choice
     choice -= weights[x];
     if (choice < 0) {
