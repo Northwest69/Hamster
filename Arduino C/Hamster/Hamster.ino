@@ -2,8 +2,8 @@
    Start Date: June 5, 2015
    Project: Alpha
 
-   Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward. 
-   
+   Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward.
+
    When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
 
    Data is sent to PC via bluetooth serial terminal.
@@ -60,16 +60,16 @@ void setup() {
   bouncer .attach(modeButton);
   bouncer .interval(250);
   pinMode(modeLED, OUTPUT);
-  
+
   /* Attach the motors to the input pins: */
   driver.attachMotorA(rightMotor1, rightMotor2);
   driver.attachMotorB(leftMotor1, leftMotor2);
-  
+
   /* Attach status LED to output pins */
   for (int x = 0; x < 3; x++) {
     pinMode(statusLED[x], OUTPUT);
   }
-  
+
   Serial.println("H A M S T E R v0.3.0 <3\n");
   statusLed(0); // Set status LED to Ready (green)
 }
@@ -83,7 +83,7 @@ void loop() {
     statusLed(4); // Ping status (light blue)
     ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
   }
-  
+
   /* Hamster checks if ultraSensor sees anything 40 cm in front of it, and rotates right if it does. Otherwise, Hamster drives forward.*/
   ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm and print result (0 = outside set distance range)
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
@@ -101,80 +101,80 @@ void loop() {
     /* Set to Learning Mode if mode button is pressed*/
     bouncer .update(); // Updates mode button status
     modeState = bouncer .read();
-    
+
     if (modeState == HIGH) {
-      
+
       /* Use Neural Network if Hamster tried to learn less than max attempts limit */
       if ( learningAttempts < maxAttempts) {
         digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
         Serial.println("Learning Mode");
         Serial.print("Learning Attempts: "); // Print current attempts
         Serial.println(learningAttempts);
-        
+
         /* Check if any probability has reached 75% */
-        for (int x = 0; x < 0; x++){
-          if (probability[x] >= probabilityThreshold - probabilityError){
-             probabilityCheck++;
-             Serial.println("Probability Threshold Reached");
+        for (int x = 0; x < 0; x++) {
+          if (probability[x] >= probabilityThreshold - probabilityError) {
+            probabilityCheck++;
+            Serial.print("Probability Threshold Reached");
           }
-        } 
+        }
         if (probabilityCheck == 0) {
-            ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
-            ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
+          ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
+          ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
 
-        if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
-          for (int x = 0; x < 5; x++) { // Decrease drive instruction's probability
-            if (x == driveInstruction) {
-              probability[x] = probability[x] - 0.01;
-            } else {
-              probability[x] = probability[x] + 0.0025;
+          if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
+            for (int x = 0; x < 5; x++) { // Decrease drive instruction's probability
+              if (x == driveInstruction) {
+                probability[x] = probability[x] - 0.01;
+              } else {
+                probability[x] = probability[x] + 0.0025;
+              }
+              status = 5; // Action Failed status (light red)
             }
-            status = 5; // Action Failed status (light red)
           }
-        }
-        else if (ultraSensorCM[1] < ultraSensorCM[0]) {
-          for (int x = 0; x < 5; x++) { // Decrease drive instruction's probability
-            if (x == driveInstruction) {
-              probability[x] = probability[x] - 0.01;
-            } else {
-              probability[x] = probability[x] + 0.0025;
+          else if (ultraSensorCM[1] < ultraSensorCM[0]) {
+            for (int x = 0; x < 5; x++) { // Decrease drive instruction's probability
+              if (x == driveInstruction) {
+                probability[x] = probability[x] - 0.01;
+              } else {
+                probability[x] = probability[x] + 0.0025;
+              }
+              status = 5; // Action Failed status (light red)
             }
-            status = 5; // Action Failed status (light red)
           }
-        }
-        else {
-          for (int x = 0; x < 5; x++) { // Increase drive instruction's probability
-            if (x == driveInstruction) {
-              probability[x] = probability[x] + 0.01;
-            } else {
-              probability[x] = probability[x] - 0.0025;
+          else {
+            for (int x = 0; x < 5; x++) { // Increase drive instruction's probability
+              if (x == driveInstruction) {
+                probability[x] = probability[x] + 0.01;
+              } else {
+                probability[x] = probability[x] - 0.0025;
+              }
+              status = 3; // Action Success status (purple)
             }
-            status = 3; // Action Success status (purple)
           }
-        }
-        
-        Serial.print("Probability: "); // Print current drive train probabilities
-        for (int x = 0; x < 5; x++) {
-          Serial.print(probability[x]);
-          Serial.print(" ");
-        }
-        Serial.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
 
-        learningAttempts++; // Increase learning tracker
+          Serial.print("Probability: "); // Print current drive train probabilities
+          for (int x = 0; x < 5; x++) {
+            Serial.print(probability[x]);
+            Serial.print(" ");
+          }
+          //        Serial.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
+
+          learningAttempts++; // Increase learning tracker
+        }
       }
     }
-   }
   } else {
     // Go forwards at 85% duty cycle
     driveInstruction = 1; // Drive Forwards
     dutyCycle = 85;
-    driveTrain(driveInstruction, dutyCycle); 
+    driveTrain(driveInstruction, dutyCycle);
     status = 2; // Wander status (Blue)
   }
   statusLed(status);
   Serial.println("\n~~~~~~~~~~\n");
 
-/* Should learning mode be switched off? */
+  /* Should learning mode be switched off? */
   if (modeState == LOW || learningAttempts >= maxAttempts) {
     digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
   }
@@ -185,9 +185,9 @@ void driveTrain(int instruction, int dutyCycle) {
   motorSpeed = map(dutyCycle, 0, 100, 0, 255); // Map motorSpeed (255 - 0) to dutyCycle (0 - 100)
 
   /* Drive Train data */
-  Serial.print("Duty Cycle: ");
-  Serial.print(dutyCycle);
-  Serial.print("%\t");
+  //  Serial.print("Duty Cycle: ");
+  //  Serial.print(dutyCycle);
+  //  Serial.print("%\t");
 
   switch (instruction) {
     case 0: // Stop
@@ -278,7 +278,7 @@ void statusLed(int status) {
 /* Weighted Random Choice function  */
 int weightedRandom(float* weights) {
   float seed = random(3.14); // seed the countdown with pi (yum)
-  float choice = seed * 0.75; // reduce the seed and save into countdown
+  float choice = seed * 1; // reduce the seed and save into countdown
   for (int x = 0; x < 5; x++) { // minus each probability from choice
     choice -= weights[x];
     if (choice < 0) {
