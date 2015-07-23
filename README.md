@@ -8,26 +8,34 @@ When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the p
 
 Data is sent to PC via bluetooth serial terminal.
 
-Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06
+Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Blue tooth Shield HC-06
 
 To do:
 Add mode switch
 Install compass
 Add On/Off switch and function
 Add On/Off LED indicator
-Make hamster drive staight
+Make hamster drive straight
 Make Hamster look around then determine the best direction to drive
 Create lower limit for probabilities
 Add instruction buffer
+Add Ultra sensor distance buffer (reduce chance of robot going back and forth)
 Allow Arduino to Receive Commands via bluetooth
-Make robot wait for bluetooth connection before it starts moving
 Read/Write probabilities to computer
+Wireless programming circuit
 
 Log:
+7/22/2015
+Changed name of bluetooth module to: Hamster
+Changed Password to: Swag
+Developed Bluetooth Config Sketch
+
 7/21/2015
 Add Bluetooth functionality via HC-06 Bluetooth Shield
 	Sends data to computer
 	Formatted Serial data
+Changed Colors for better aesthetic
+Implement software serial for bluetooth
 
 7/15/2015
 Added Debounce 2 library to add functionality to debounce buttons. Perhaps this can be used to buffer actions
@@ -41,9 +49,9 @@ Add max training attempts (50)
   Add exit if n training attempts reached
 Add EEPROM library
   Update probabilities to EEPROM
-  Nevermind... blew max writes on mem 0 already. Fyuck that. Will wait for bluetooth communications
-Now using 5 differant actions (stop, forwards, backwards, rotate right, rotate left)
-Add active Feedforward Back Proprogation Neutal Network
+  Nevermind... blew max writes on mem 0 already. Fuck that. Will wait for bluetooth communications
+Now using 5 different actions (stop, forwards, backwards, rotate right, rotate left)
+Add active Feedforward Back Propagation Neural Network
   Add "training mode"
   Add LED to indication which mode Hamster is in
 
@@ -52,7 +60,7 @@ Added a Feedforward Neural Network for obstacle avoidance
 USB drive on computer mangled again.... Have thought out robot more. Very happy with current results.
 
 7/10/2015
-Ultrasonic rangefinder working well, however there is lag between when it detects an object and when it takes action.
+Ultrasonic range finder working well, however there is lag between when it detects an object and when it takes action.
   Calibrated Sensor
 Poor wheel alignment
 Implemented a status LED
@@ -61,8 +69,8 @@ Implemented a status LED
 Create DC Motor drive function. void driveTrain(int instruction, int dutyCycle, int period)
 Implemented driveTrain()
 Created better serial messages
-Reworked ultrasonic rangefinder pinging as a state function
-ultrasonic rangefind needs to be calibrated. wtf. it's slow.
+Reworked ultrasonic range finder pinging as a state function
+ultrasonic range find needs to be calibrated. wtf. it's slow.
 ok now the robot works but is really dumb lol. it runs into stuff... lag time... momentum... go and :speed up ping
 
 7/8/2015
@@ -91,11 +99,11 @@ void driveTrain(int instruction, int dutyCycle)
 		0% - 100%
 
 void statusLED(int status)
-	Wtatuses
+	Statuses
 		0	Green		Ready
 		1	Red 		Object Avoidance
-		2	Blue 		Wander
-		3	Purple		Action Success
+		2	Blue 		Action Success
+		3	Purple		Wander
 		4	Light Blue 	Ping
 		5	Light Red 	Action Failed
 

@@ -10,7 +10,7 @@
 
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06
 */
-
+#include <SoftwareSerial.h> // Include Software Serial to allow programming and bluetooth at the same time
 #include <Bounce2.h> // Include Bounce 2 to handle button bounce
 #include <NewPing.h> // Include NewPing to handle ultraSensor data
 #include <DRV8833.h> // Include DRV8833 Dual Motor Driver Carrier - Pololu  
@@ -50,12 +50,20 @@ int probabilityCheck = 0; // Counter for checking if probabilities high threshol
 int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
 
+/* Bluetooth Communications */
+int rxPin = A4;
+int txPin = A5;
+
 DRV8833 driver = DRV8833(); // Create an instance of the DRV8833:
 NewPing ultraSensor(ultraSensorTriggerPin, ultraSensorEchoPin, maxDistance); // NewPing setup of pins and maximum distance.
 Bounce bouncer = Bounce(); // Create a bounce object
+SoftwareSerial bluetooth(rxPin, txPin); // RX, TX for bluetooth
 
 void setup() {
-  Serial.begin(9600);             // Start Serial connection
+  /* Initalize pins for bluetooth*/
+  pinMode(rxPin, INPUT);
+  pinMode(txPin, OUTPUT);
+  bluetooth.begin(9600);             // Start Serial connection
   pinMode(modeButton, INPUT); // Initialize mode button and LED
   bouncer .attach(modeButton);
   bouncer .interval(250);
@@ -70,7 +78,7 @@ void setup() {
     pinMode(statusLED[x], OUTPUT);
   }
 
-  Serial.println("H A M S T E R v0.3.0 <3\n");
+  bluetooth.println("H A M S T E R v0.3.0 <3\n");
   statusLed(0); // Set status LED to Ready (green)
 }
 
@@ -89,9 +97,9 @@ void loop() {
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
     statusLed(1); // Object Avoidance status (Red)
     /* Print to Serial ultraSensorCM */
-    Serial.print("Distance to Closest Object: ");
-    Serial.print(ultraSensorCM[0]);
-    Serial.println("cm");
+    bluetooth.print("Distance to Closest Object: ");
+    bluetooth.print(ultraSensorCM[0]);
+    bluetooth.println("cm");
 
     /* Feedforward Neural Network with Back Proprogation */
     driveInstruction = weightedRandom(probability); // Use probability to pick an action and perform it
@@ -107,15 +115,15 @@ void loop() {
       /* Use Neural Network if Hamster tried to learn less than max attempts limit */
       if ( learningAttempts < maxAttempts) {
         digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
-        Serial.println("Learning Mode");
-        Serial.print("Learning Attempts: "); // Print current attempts
-        Serial.println(learningAttempts);
+        bluetooth.println("Learning Mode");
+        bluetooth.print("Learning Attempts: "); // Print current attempts
+        bluetooth.println(learningAttempts);
 
         /* Check if any probability has reached 75% */
         for (int x = 0; x < 0; x++) {
           if (probability[x] >= probabilityThreshold - probabilityError) {
             probabilityCheck++;
-            Serial.print("Probability Threshold Reached");
+            bluetooth.print("Probability Threshold Reached");
           }
         }
         if (probabilityCheck == 0) {
@@ -149,14 +157,14 @@ void loop() {
               } else {
                 probability[x] = probability[x] - 0.0025;
               }
-              status = 3; // Action Success status (purple)
+              status = 2; // Action Success status (Blue)
             }
           }
 
-          Serial.print("Probability: "); // Print current drive train probabilities
+          bluetooth.print("Probability: "); // Print current drive train probabilities
           for (int x = 0; x < 5; x++) {
-            Serial.print(probability[x]);
-            Serial.print(" ");
+            bluetooth.print(probability[x]);
+            bluetooth.print(" ");
           }
           //        Serial.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
 
@@ -169,10 +177,10 @@ void loop() {
     driveInstruction = 1; // Drive Forwards
     dutyCycle = 85;
     driveTrain(driveInstruction, dutyCycle);
-    status = 2; // Wander status (Blue)
+    status = 3; // Wander status (Purple)
   }
   statusLed(status);
-  Serial.println("\n~~~~~~~~~~\n");
+  bluetooth.println("\n~~~~~~~~~~\n");
 
   /* Should learning mode be switched off? */
   if (modeState == LOW || learningAttempts >= maxAttempts) {
@@ -191,27 +199,27 @@ void driveTrain(int instruction, int dutyCycle) {
 
   switch (instruction) {
     case 0: // Stop
-      Serial.print("Stop\n");
+      bluetooth.print("Stop\n");
       driver.motorAStop();
       driver.motorBStop();
       break;
     case 1: // Forward
-      Serial.print("Forward\n");
+      bluetooth.print("Forward\n");
       driver.motorAForward(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
     case 2: // Backwards
-      Serial.print("Backward\n");
+      bluetooth.print("Backward\n");
       driver.motorAReverse(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
     case 3: // Rotate right
-      Serial.print("Rotate Right\n");
+      bluetooth.print("Rotate Right\n");
       driver.motorAReverse(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
     case 4: // Rotate left
-      Serial.print("Rotate Left\n");
+      bluetooth.print("Rotate Left\n");
       driver.motorAForward(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
