@@ -25,6 +25,9 @@ Read/Write probabilities to computer
 Wireless programming circuit
 
 Log:
+7/27/2015
+Added a probability floor
+
 7/22/2015
 Changed name of bluetooth module to: Hamster
 Changed Password to: Swag

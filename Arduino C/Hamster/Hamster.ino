@@ -1,4 +1,4 @@
-/* Hamster 0.3.0 created by Peter Chau
+/* Hamster 0.3.1 created by Peter Chau
    Start Date: June 5, 2015
    Project: Alpha
 
@@ -45,6 +45,7 @@ int modeState = LOW; // Set inital state to drive mode (learn mode off)
 int lastModeState = LOW; // Previous mode
 float probability[] = {0.200, 0.200, 0.200, 0.200, 0.200}; // Set equal initial probabilities
 float probabilityThreshold = 0.75; // Set max probability threshold to 75%
+float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
 float probabilityError = 0.01; // Set probability error to 1%
 int probabilityCheck = 0; // Counter for checking if probabilities high threshold
 int maxAttempts = 500; // Set max attempts to learn
@@ -120,7 +121,7 @@ void loop() {
         bluetooth.println(learningAttempts);
 
         /* Check if any probability has reached 75% */
-        for (int x = 0; x < 0; x++) {
+        for (int x = 0; x < 5; x++) {
           if (probability[x] >= probabilityThreshold - probabilityError) {
             probabilityCheck++;
             bluetooth.print("Probability Threshold Reached");
@@ -161,12 +162,29 @@ void loop() {
             }
           }
 
+          /* Check if any probabilityFloor has been reached*/
+          for (int x = 0; x < 5; x++) {
+            if (probability[x] <= probabilityError) {
+              /* Split remaining probability up between other probabilities */
+              probabilityRemainder = probability[x];
+              probability[x] = 0;
+              for (int x = 0; x < 5; x++) {
+                if (probability != 0) {
+                  probability[x] += probabilityRemainder / 5;
+                }
+              }
+              bluetooth.print("Probability[");
+              bluetooth.print(x + 1);
+              bluetooth.println("] has reached Probability Floor");
+            }
+          }
+
           bluetooth.print("Probability: "); // Print current drive train probabilities
           for (int x = 0; x < 5; x++) {
             bluetooth.print(probability[x]);
             bluetooth.print(" ");
           }
-          //        Serial.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
+          bluetooth.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
 
           learningAttempts++; // Increase learning tracker
         }
