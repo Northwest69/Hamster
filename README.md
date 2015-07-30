@@ -12,10 +12,8 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 
 To do:
 Add mode switch
-Install compass
 Add On/Off switch and function
 Add On/Off LED indicator
-Make hamster drive straight
 Make Hamster look around then determine the best direction to drive
 Create lower limit for probabilities
 Add instruction buffer
@@ -25,6 +23,11 @@ Read/Write probabilities to computer
 Wireless programming circuit
 
 Log:
+7/29/2015
+Enable triple axis compass
+Implemented compass navigation to drive straight
+	Added buffer so no adjustment occurs when heading difference is less than 1 degree 
+
 7/27/2015
 Added a probability floor
 

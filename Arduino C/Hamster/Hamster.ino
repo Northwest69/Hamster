@@ -1,4 +1,4 @@
-/* Hamster 0.3.1 created by Peter Chau
+/* Hamster 0.3.2 created by Peter Chau
    Start Date: June 5, 2015
    Project: Alpha
 
@@ -8,12 +8,15 @@
 
    Data is sent to PC via bluetooth serial terminal.
 
-   Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06
+   Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
 */
 #include <SoftwareSerial.h> // Include Software Serial to allow programming and bluetooth at the same time
 #include <Bounce2.h> // Include Bounce 2 to handle button bounce
 #include <NewPing.h> // Include NewPing to handle ultraSensor data
 #include <DRV8833.h> // Include DRV8833 Dual Motor Driver Carrier - Pololu  
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_HMC5883_U.h>
 
 /* Ultrasonic Rangefinder constants and variables */
 const int ultraSensorTriggerPin = 12;  // Arduino pin tied to trigger pin on the ultrasonic sensor.
@@ -52,13 +55,17 @@ int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
 
 /* Bluetooth Communications */
-int rxPin = A4;
-int txPin = A5;
+int rxPin = A2;
+int txPin = A3;
+
+/* Compass Navigations */
+float currentHeading;
 
 DRV8833 driver = DRV8833(); // Create an instance of the DRV8833:
 NewPing ultraSensor(ultraSensorTriggerPin, ultraSensorEchoPin, maxDistance); // NewPing setup of pins and maximum distance.
 Bounce bouncer = Bounce(); // Create a bounce object
 SoftwareSerial bluetooth(rxPin, txPin); // RX, TX for bluetooth
+Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345); // Create compass object
 
 void setup() {
   /* Initalize pins for bluetooth*/
@@ -69,7 +76,15 @@ void setup() {
   bouncer .attach(modeButton);
   bouncer .interval(250);
   pinMode(modeLED, OUTPUT);
-
+  
+  /* Initialise the sensor */
+  if(!compass.begin())
+  {
+    /* There was a problem detecting the HMC5883 ... check your connections */
+    Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
+    while(1);
+  }
+  
   /* Attach the motors to the input pins: */
   driver.attachMotorA(rightMotor1, rightMotor2);
   driver.attachMotorB(leftMotor1, leftMotor2);
@@ -79,12 +94,12 @@ void setup() {
     pinMode(statusLED[x], OUTPUT);
   }
 
-  bluetooth.println("H A M S T E R v0.3.0 <3\n");
+  bluetooth.println("H A M S T E R v0.3.2 <3\n");
   statusLed(0); // Set status LED to Ready (green)
 }
 
 void loop() {
-
+  
   /* Measure the distanace to closest object */
   unsigned long currentMillis = millis(); //record current time
   if (currentMillis - pingTimer > pingSpeed) { // save the last time you pinged
@@ -93,6 +108,8 @@ void loop() {
     ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
   }
 
+   currentHeading = readCompass(); // Get current heading
+    
   /* Hamster checks if ultraSensor sees anything 40 cm in front of it, and rotates right if it does. Otherwise, Hamster drives forward.*/
   ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm and print result (0 = outside set distance range)
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
@@ -191,11 +208,22 @@ void loop() {
       }
     }
   } else {
+  /* Check if we are driving straight */
+    if (driveInstruction == 1){ //
+      float targetHeading = currentHeading; // Set target heading
+      currentHeading = readCompass(); // Find current heading 
+      float difference = targetHeading - currentHeading;
+      if( -1 < difference < 1){ // Add buffer so this doesn't run all the time
+      driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
+      }
+      } else {
+          
     // Go forwards at 85% duty cycle
     driveInstruction = 1; // Drive Forwards
     dutyCycle = 85;
     driveTrain(driveInstruction, dutyCycle);
     status = 3; // Wander status (Purple)
+      }
   }
   statusLed(status);
   bluetooth.println("\n~~~~~~~~~~\n");
@@ -312,3 +340,57 @@ int weightedRandom(float* weights) {
     }
   }
 }
+
+/* Read Triple axis compass */
+float readCompass() {
+  /* Get a new sensor event */ 
+  sensors_event_t event; 
+  compass.getEvent(&event);
+ 
+  // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
+  // Calculate heading when the magnetometer is level, then correct for signs of axis.
+  float heading = atan2(event.magnetic.y, event.magnetic.x);
+  
+  // Once you have your heading, you must then add your 'Declination Angle', which is the 'Error' of the magnetic field in your location.
+  // Find yours here: http://www.magnetic-declination.com/
+  // Mine is: -13* 2' W, which is ~13 Degrees, or (which we need) 0.22 radians
+  // If you cannot find your Declination, comment out these two lines, your compass will be slightly off.
+  float declinationAngle = 0.23;
+  heading += declinationAngle;
+  
+  // Correct for when signs are reversed.
+  if(heading < 0)
+    heading += 2*PI;
+    
+  // Check for wrap due to addition of declination.
+  if(heading > 2*PI)
+    heading -= 2*PI;
+   
+  // Convert radians to degrees for readability.
+  float headingDegrees = heading * 180/M_PI; 
+  
+  bluetooth.print("Heading (degrees): "); bluetooth.println(headingDegrees);
+
+  return headingDegrees;
+}
+
+/* Determine which direction we need to rotate: CCW or CW */
+int adjustHeading(float difference){
+  bluetooth.print("Difference: "); bluetooth.print(difference);
+  if (difference < -270){
+    bluetooth.println(" CW");
+    return 3;
+    } else if (difference > -270 && difference < 0){
+          bluetooth.println(" CCW");
+      return 4;
+      } else if (difference < 270 && difference > 0){
+            bluetooth.println(" CW");
+        return 3;
+        } else if (difference > 270 && difference > 0) {
+              bluetooth.println(" CCW");
+          return 4;
+          }
+}
+
+
+
