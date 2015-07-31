@@ -1,4 +1,4 @@
-Hamster 0.3.0 created by Peter Chau
+Hamster 0.3.3 created by Peter Chau
 Start Date: June 5, 2015
 Project: Alpha
 
@@ -14,16 +14,17 @@ To do:
 Add mode switch
 Add On/Off switch and function
 Add On/Off LED indicator
-Make Hamster look around then determine the best direction to drive
-Create lower limit for probabilities
-Add instruction buffer
-Add Ultra sensor distance buffer (reduce chance of robot going back and forth)
 Allow Arduino to Receive Commands via bluetooth
 Read/Write probabilities to computer
-Wireless programming circuit
 
 Log:
-7/29/2015
+7/30/2015 0.3.3
+Implemented rotate to a degree compass navigation
+	Hard-coded degrees to drive train
+	It rotates a fixed amount then stops when it's clear
+Stop motors when we see something	
+
+7/29/2015 0.3.2
 Enable triple axis compass
 Implemented compass navigation to drive straight
 	Added buffer so no adjustment occurs when heading difference is less than 1 degree 
