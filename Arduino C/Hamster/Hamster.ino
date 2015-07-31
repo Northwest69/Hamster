@@ -46,7 +46,7 @@ const int modeButton = 8; // Momentary switch for putting Hamster in learn mode
 const int modeLED = 9; // LED to indicate what mode we are in
 int modeState = LOW; // Set inital state to drive mode (learn mode off)
 int lastModeState = LOW; // Previous mode
-float probability[] = {0.250, 0.250, 0.250, 0.250}; // Set equal initial probabilities
+float probability[] = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167}; // Set equal initial probabilities
 float probabilityThreshold = 0.75; // Set max probability threshold to 75%
 float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
 float probabilityError = 0.01; // Set probability error to 1%
@@ -143,16 +143,16 @@ void loop() {
     if (modeState == HIGH) {
 
       /* Check if any probability has reached 75% */
-      for (int x = 0; x < 4; x++) {
+      for (int x = 0; x < 6; x++) {
         if (probability[x] >= probabilityThreshold - probabilityError) {
           probabilityCheck++;
           bluetooth.println("Probability Threshold Reached");
           bluetooth.print("Probability: "); // Print current drive train probabilities
-          for (int x = 0; x < 4; x++) {
+          for (int x = 0; x < 6; x++) {
             bluetooth.print(probability[x]);
             bluetooth.print(" ");
           }
-          bluetooth.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
+          bluetooth.println("(Stop, Forward, Backwards, Rotate Right by Degree, Rotate Left be Degree, Rotate Right, Rotate Left)");
         }
       }
       if (probabilityCheck == 0) {
@@ -168,45 +168,45 @@ void loop() {
           ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
 
           if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
-            for (int x = 0; x < 4; x++) { // Decrease drive instruction's probability
+            for (int x = 0; x < 6; x++) { // Decrease drive instruction's probability
               if (x == driveInstruction) {
                 probability[x] = probability[x] - 0.01;
               } else {
-                probability[x] = probability[x] + 0.0025;
+                probability[x] = probability[x] + 0.00167;
               }
               status = 5; // Action Failed status (light red)
             }
           }
           else if (ultraSensorCM[1] < ultraSensorCM[0]) {
-            for (int x = 0; x < 4; x++) { // Decrease drive instruction's probability
+            for (int x = 0; x < 6; x++) { // Decrease drive instruction's probability
               if (x == driveInstruction) {
                 probability[x] = probability[x] - 0.01;
               } else {
-                probability[x] = probability[x] + 0.0025;
+                probability[x] = probability[x] + 0.00167;
               }
               status = 5; // Action Failed status (light red)
             }
           }
           else {
-            for (int x = 0; x < 4; x++) { // Increase drive instruction's probability
+            for (int x = 0; x < 6; x++) { // Increase drive instruction's probability
               if (x == driveInstruction) {
                 probability[x] = probability[x] + 0.01;
               } else {
-                probability[x] = probability[x] - 0.0025;
+                probability[x] = probability[x] - 0.00167;
               }
               status = 2; // Action Success status (Blue)
             }
           }
 
           /* Check if any probabilityFloor has been reached*/
-          for (int x = 0; x < 4; x++) {
+          for (int x = 0; x < 6; x++) {
             if (probability[x] <= probabilityError) {
               /* Split remaining probability up between other probabilities */
               probabilityRemainder = probability[x];
               probability[x] = 0;
-              for (int x = 0; x < 4; x++) {
+              for (int x = 0; x < 6; x++) {
                 if (probability != 0) {
-                  probability[x] += probabilityRemainder / 5;
+                  probability[x] += probabilityRemainder / 6;
                 }
               }
               bluetooth.print("Probability[");
@@ -216,11 +216,11 @@ void loop() {
           }
 
           bluetooth.print("Probability: "); // Print current drive train probabilities
-          for (int x = 0; x < 4; x++) {
+          for (int x = 0; x < 6; x++) {
             bluetooth.print(probability[x]);
             bluetooth.print(" ");
           }
-          bluetooth.println("(Stop, Forward, Backwards, Rotate Right, Rotate Left)");
+          bluetooth.println("(Stop, Forward, Backwards, Rotate Right by Degree, Rotate Left be Degree, Rotate Right, Rotate Left)");
 
           learningAttempts++; // Increase learning tracker
         }
@@ -262,9 +262,9 @@ void driveTrain(int instruction, int dutyCycle, float rotateDegree, float curren
   //  Serial.print("Duty Cycle: ");
   //  Serial.print(dutyCycle);
   //  Serial.print("%\t");
-float targetHeading;
-float difference;
-int rotateDirection;
+  float targetHeading;
+  float difference;
+  int rotateDirection;
 
   switch (instruction) {
 
@@ -289,10 +289,10 @@ int rotateDirection;
       difference = targetHeading - currentHeading;
       while ((difference < -15) || (difference > 15)) { // Add buffer so this doesn't run all the time
         bluetooth.print("Target Heading: "); bluetooth.println(targetHeading);
-          /* CW */
-          bluetooth.print("Rotate Right");
-          driver.motorAReverse(motorSpeed);
-          driver.motorBForward(motorSpeed);
+        /* CW */
+        bluetooth.print("Rotate Right");
+        driver.motorAReverse(motorSpeed);
+        driver.motorBForward(motorSpeed);
         currentHeading = readCompass(); // Find current heading
         difference = targetHeading - currentHeading;
         if ((difference < 10) && (difference > -10)) {
@@ -301,7 +301,7 @@ int rotateDirection;
       }
       break;
 
-    case 3: // Rotate CCW 
+    case 3: // Rotate CCW
       if ((currentHeading - rotateDegree) < 0) {
         targetHeading = currentHeading - rotateDegree + 360; // Set target heading
       } else {
@@ -310,10 +310,10 @@ int rotateDirection;
       difference = targetHeading - currentHeading;
       while ( (difference < -15) || (difference > 15)) { // Add buffer so this doesn't run all the time
         bluetooth.print("Target Heading: "); bluetooth.println(targetHeading);
-          /* CCW */
-          bluetooth.println("Rotate Left");
-          driver.motorAForward(motorSpeed);
-          driver.motorBReverse(motorSpeed);
+        /* CCW */
+        bluetooth.println("Rotate Left");
+        driver.motorAForward(motorSpeed);
+        driver.motorBReverse(motorSpeed);
 
         currentHeading = readCompass(); // Find current heading
         difference = targetHeading - currentHeading;
@@ -404,7 +404,7 @@ void statusLed(int status) {
 int weightedRandom(float* weights) {
   float seed = random(3.14); // seed the countdown with pi (yum)
   float choice = seed * 1; // reduce the seed and save into countdown
-  for (int x = 0; x < 4; x++) { // minus each probability from choice
+  for (int x = 0; x < 6; x++) { // minus each probability from choice
     choice -= weights[x];
     if (choice < 0) {
       return x; // return weight index
@@ -417,19 +417,19 @@ float readCompass() {
   /* Get a new sensor event */
   sensors_event_t event;
   compass.getEvent(&event);
-  
+
   /* Display the results (magnetic vector values are in micro-Tesla (uT)) */
   Serial.print("X: "); Serial.print(event.magnetic.x); Serial.print("  ");
   Serial.print("Y: "); Serial.print(event.magnetic.y); Serial.print("  ");
-  Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  ");Serial.println("uT");
-  
+  Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  "); Serial.println("uT");
+
   // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
   // Calculate heading when the magnetometer is level, then correct for signs of axis.
   float heading = atan2(event.magnetic.y, event.magnetic.x);
 
   float declinationAngle = 0.22;
   heading += declinationAngle;
-  
+
   // Correct for when signs are reversed.
   if (heading < 0)
     heading += 2 * PI;
