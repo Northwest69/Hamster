@@ -21,6 +21,9 @@ To do:
 
 Log:
 ----
+###8/4/2-15 0.3.4
+   Cleaned up and optimized code
+
 ###7/30/2015 0.3.3
    Implemented rotate to a degree compass navigation
       Hard-coded degrees to drive train
@@ -84,7 +87,7 @@ Log:
    ok now the robot works but is really dumb lol. it runs into stuff... lag time... momentum... go and :speed up ping
 
 ###7/8/2015
-   Arduino Uno now functioning - Window's driver needed to be installed. Gave it a fresh battery charge aswell.
+   Arduino Uno now functioning - Window's driver needed to be installed. Gave it a fresh battery charge as well.
    Updated Breadboard and schematic - was missing Uno VIN.
 
 ###7/7/2015

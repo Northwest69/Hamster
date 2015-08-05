@@ -1,4 +1,4 @@
-/* Hamster 0.3.2 created by Peter Chau
+/* Hamster 0.3.3 created by Peter Chau
    Start Date: June 5, 2015
    Project: Alpha
 
@@ -10,6 +10,7 @@
 
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
 */
+
 #include <SoftwareSerial.h> // Include Software Serial to allow programming and bluetooth at the same time
 #include <Bounce2.h> // Include Bounce 2 to handle button bounce
 #include <NewPing.h> // Include NewPing to handle ultraSensor data
@@ -18,15 +19,17 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 
-/* Ultrasonic Rangefinder constants and variables */
-const int ultraSensorTriggerPin = 12;  // Arduino pin tied to trigger pin on the ultrasonic sensor.
-const int ultraSensorEchoPin = 13;  // Arduino pin tied to echo pin on the ultrasonic sensor.
-const int maxDistance = 100;
-const int pingSpeed = 50; // 50ms between pings
-const int safeZone = 40; // 40cm between Hamster and any object
-long pingTimer = 0; // will store last time ping occurred
-unsigned int ultraSensorRaw; // will store raw ultrasensor range finder distance
-int ultraSensorCM[1]; // will stored distance from object in cm
+/* Bluetooth Communications constants */
+const int rxPin = A2;
+const int txPin = A3;
+
+/* Compass Navigations variables */
+float currentHeading;
+float rotateDegree = 30;
+
+/* Status LED constants and variables */
+const int statusLEDPins[] = {4, 2, 3}; // Array for Status LED with pins for red, green, and blue
+int status;
 
 /* Drive Train constant and variables */
 const int rightMotor1 = 11;   // PWM control Right Motor -
@@ -35,33 +38,29 @@ const int leftMotor1 = 5;  // PWM control Left Motor +
 const int leftMotor2 = 6;  // PWM control Left Motor -
 int driveInstruction = 6; // Stop as initial command
 int dutyCycle = 0; // Set initial 0% duty cycle PWM
-int motorSpeed;
-
-/* Status LED constants and variables */
-const int statusLED[] = {4, 2, 3}; // Array for Status LED with pins for red, green, and blue
-int status;
 
 /* Neural Network constants and variables */
 const int modeButton = 8; // Momentary switch for putting Hamster in learn mode
 const int modeLED = 9; // LED to indicate what mode we are in
+const float probabilityThreshold = 0.75; // Set max probability threshold to 75%
+const float probabilityFloor = 0.01; // Set probability error to 1%
+const int maxAttempts = 500; // Set max attempts to learn
 int modeState = LOW; // Set inital state to drive mode (learn mode off)
 int lastModeState = LOW; // Previous mode
-float probability[] = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167}; // Set equal initial probabilities
-float probabilityThreshold = 0.75; // Set max probability threshold to 75%
-float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
-float probabilityError = 0.01; // Set probability error to 1%
 int probabilityCheck = 0; // Counter for checking if probabilities high threshold
-int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
+float probability[] = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167}; // Set equal initial probabilities
+float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
 
-/* Bluetooth Communications */
-int rxPin = A2;
-int txPin = A3;
-
-/* Compass Navigations */
-float currentHeading;
-float rotateDegree;
-float targetDegree;
+/* Ultrasonic Rangefinder constants and variables */
+const int ultraSensorTriggerPin = 12;  // Arduino pin tied to trigger pin on the ultrasonic sensor.
+const int ultraSensorEchoPin = 13;  // Arduino pin tied to echo pin on the ultrasonic sensor.
+const int maxDistance = 100;
+const int pingSpeed = 50; // 50ms between pings
+const int safeZone = 40; // 40cm between Hamster and any object
+int ultraSensorCM[1]; // will stored distance from object in cm
+long pingTimer = 0; // will store last time ping occurred
+unsigned int ultraSensorRaw; // will store raw ultrasensor range finder distance
 
 DRV8833 driver = DRV8833(); // Create an instance of the DRV8833:
 NewPing ultraSensor(ultraSensorTriggerPin, ultraSensorEchoPin, maxDistance); // NewPing setup of pins and maximum distance.
@@ -73,17 +72,18 @@ void setup() {
   /* Initalize pins for bluetooth*/
   pinMode(rxPin, INPUT);
   pinMode(txPin, OUTPUT);
-  bluetooth.begin(9600);             // Start Serial connection
-  pinMode(modeButton, INPUT); // Initialize mode button and LED
+  bluetooth.begin(9600);
+
+  /* Initialize mode button and LED */
+  pinMode(modeButton, INPUT);
   bouncer .attach(modeButton);
   bouncer .interval(250);
   pinMode(modeLED, OUTPUT);
 
   /* Initialise the sensor */
-  if (!compass.begin())
-  {
+  if (!compass.begin()) {
     /* There was a problem detecting the HMC5883 ... check your connections */
-    Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
+    bluetooth.println("Ooops, no HMC5883 detected ... Check your wiring!");
     while (1);
   }
 
@@ -93,7 +93,7 @@ void setup() {
 
   /* Attach status LED to output pins */
   for (int x = 0; x < 3; x++) {
-    pinMode(statusLED[x], OUTPUT);
+    pinMode(statusLEDPins[x], OUTPUT);
   }
 
   bluetooth.println("H A M S T E R v0.3.2 <3\n");
@@ -115,25 +115,16 @@ void loop() {
   /* Hamster checks if ultraSensor sees anything 40 cm in front of it, and rotates right if it does. Otherwise, Hamster drives forward.*/
   ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm and print result (0 = outside set distance range)
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
+    driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is in our safe zone
     statusLed(1); // Object Avoidance status (Red)
     /* Print to Serial ultraSensorCM */
     bluetooth.print("Distance to Closest Object: ");
     bluetooth.print(ultraSensorCM[0]);
-    bluetooth.println("cm");
-
-    driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is in our safe zone
+    bluetooth.println(" cm");
 
     /* Feedforward Neural Network with Back Proprogation */
     driveInstruction = weightedRandom(probability); // Use probability to pick an action and perform it
     dutyCycle = 75; // zip zip
-    /* Determine if we will need to rotate */
-    if (driveInstruction == 2) {
-      rotateDegree = 30;
-    } else if (driveInstruction == 3) {
-      rotateDegree = 30;
-    } else {
-      rotateDegree = 0;
-    }
     driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
 
     /* Set to Learning Mode if mode button is pressed*/
@@ -142,21 +133,21 @@ void loop() {
 
     if (modeState == HIGH) {
 
-      /* Check if any probability has reached 75% */
+      /* Check if any probability has reached the probability threshold */
       for (int x = 0; x < 6; x++) {
-        if (probability[x] >= probabilityThreshold - probabilityError) {
+        if (probability[x] >= probabilityThreshold) {
           probabilityCheck++;
           bluetooth.println("Probability Threshold Reached");
           bluetooth.print("Probability: "); // Print current drive train probabilities
           for (int x = 0; x < 6; x++) {
-            bluetooth.print(probability[x]);
-            bluetooth.print(" ");
+            bluetooth.print(probability[x] * 100);
+            bluetooth.print("% ");
           }
-          bluetooth.println("(Stop, Forward, Backwards, Rotate Right by Degree, Rotate Left be Degree, Rotate Right, Rotate Left)");
+          bluetooth.println("\n\rForward, Backwards, Rotate Right by Degree, Rotate Left by Degree, Rotate Right, Rotate Left, Stop");
         }
       }
-      if (probabilityCheck == 0) {
 
+      if (probabilityCheck == 0) {
         /* Use Neural Network if Hamster tried to learn less than max attempts limit */
         if ( learningAttempts < maxAttempts) {
           digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
@@ -200,7 +191,7 @@ void loop() {
 
           /* Check if any probabilityFloor has been reached*/
           for (int x = 0; x < 6; x++) {
-            if (probability[x] <= probabilityError) {
+            if (probability[x] <= probabilityFloor) {
               /* Split remaining probability up between other probabilities */
               probabilityRemainder = probability[x];
               probability[x] = 0;
@@ -210,17 +201,17 @@ void loop() {
                 }
               }
               bluetooth.print("Probability[");
-              bluetooth.print(x + 1);
-              bluetooth.println("] has reached Probability Floor");
+              bluetooth.print(x);
+              bluetooth.println("] has reached the Probability Floor");
             }
           }
 
           bluetooth.print("Probability: "); // Print current drive train probabilities
           for (int x = 0; x < 6; x++) {
-            bluetooth.print(probability[x]);
-            bluetooth.print(" ");
+            bluetooth.print(probability[x] * 100);
+            bluetooth.print("% ");
           }
-          bluetooth.println("(Stop, Forward, Backwards, Rotate Right by Degree, Rotate Left be Degree, Rotate Right, Rotate Left)");
+          bluetooth.println("\n\rForward, Backwards, Rotate Right by Degree, Rotate Left by Degree, Rotate Right, Rotate Left, Stop");
 
           learningAttempts++; // Increase learning tracker
         }
@@ -230,15 +221,13 @@ void loop() {
     /* Check if we are driving straight */
     if (driveInstruction == 0) { //
       float targetHeading = currentHeading; // Set target heading
-      bluetooth.print("Target Heading: "); bluetooth.println(targetHeading);
       currentHeading = readCompass(); // Find current heading
       float difference = targetHeading - currentHeading;
       if ( difference > -1 && difference < 1) { // Add buffer so this doesn't run all the time
         driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
       }
     } else {
-
-      // Go forwards at 85% duty cycle
+      // Go forwards
       driveInstruction = 0; // Drive Forwards
       dutyCycle = 85;
       status = 3; // Wander status (Purple)
@@ -246,7 +235,7 @@ void loop() {
     driveTrain(driveInstruction, dutyCycle, 0, currentHeading);
   }
   statusLed(status);
-  bluetooth.println("\n~~~~~~~~~~\n");
+  bluetooth.println("\r\n");
 
   /* Should learning mode be switched off? */
   if (modeState == LOW || learningAttempts >= maxAttempts) {
@@ -256,30 +245,22 @@ void loop() {
 
 /* Drive Train for 2 motors on opposite sides */
 void driveTrain(int instruction, int dutyCycle, float rotateDegree, float currentHeading) {
-  motorSpeed = map(dutyCycle, 0, 100, 0, 255); // Map motorSpeed (255 - 0) to dutyCycle (0 - 100)
-
-  /* Drive Train data */
-  //  Serial.print("Duty Cycle: ");
-  //  Serial.print(dutyCycle);
-  //  Serial.print("%\t");
+  int motorSpeed = map(dutyCycle, 0, 100, 0, 255); // Map motorSpeed (255 - 0) to dutyCycle (0 - 100)
   float targetHeading;
   float difference;
   int rotateDirection;
 
   switch (instruction) {
-
     case 0: // Forward
       bluetooth.println("Forward");
       driver.motorAForward(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
-
     case 1: // Backwards
       bluetooth.println("Backward");
       driver.motorAReverse(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
-
     case 2: // Rotate CW
       if ((currentHeading + rotateDegree) >= 360) {
         targetHeading = currentHeading + rotateDegree - 360; // Set target heading
@@ -290,7 +271,7 @@ void driveTrain(int instruction, int dutyCycle, float rotateDegree, float curren
       while ((difference < -15) || (difference > 15)) { // Add buffer so this doesn't run all the time
         bluetooth.print("Target Heading: "); bluetooth.println(targetHeading);
         /* CW */
-        bluetooth.print("Rotate Right");
+        bluetooth.print("Rotate Right by "); bluetooth.println(rotateDegree);
         driver.motorAReverse(motorSpeed);
         driver.motorBForward(motorSpeed);
         currentHeading = readCompass(); // Find current heading
@@ -300,7 +281,6 @@ void driveTrain(int instruction, int dutyCycle, float rotateDegree, float curren
         }
       }
       break;
-
     case 3: // Rotate CCW
       if ((currentHeading - rotateDegree) < 0) {
         targetHeading = currentHeading - rotateDegree + 360; // Set target heading
@@ -311,7 +291,7 @@ void driveTrain(int instruction, int dutyCycle, float rotateDegree, float curren
       while ( (difference < -15) || (difference > 15)) { // Add buffer so this doesn't run all the time
         bluetooth.print("Target Heading: "); bluetooth.println(targetHeading);
         /* CCW */
-        bluetooth.println("Rotate Left");
+        bluetooth.print("Rotate Left by "); bluetooth.println(rotateDegree);
         driver.motorAForward(motorSpeed);
         driver.motorBReverse(motorSpeed);
 
@@ -322,21 +302,17 @@ void driveTrain(int instruction, int dutyCycle, float rotateDegree, float curren
         }
       }
       break;
-
     case 4: // Rotate right
       bluetooth.println("Rotate Right");
       driver.motorAReverse(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
-
     case 5: // Rotate left
       bluetooth.println("Rotate Left");
       driver.motorAForward(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
-
     case 6: // Stop
-      bluetooth.println("Stop");
       driver.motorAStop();
       driver.motorBStop();
       break;
@@ -348,53 +324,51 @@ void driveTrain(int instruction, int dutyCycle, float rotateDegree, float curren
 void statusLed(int status) {
   switch (status) {
     case 0: // set to LED green to indicate status
-      digitalWrite(statusLED[1], LOW);
-      digitalWrite(statusLED[0], LOW);
-      if (digitalRead(statusLED[2]) != HIGH) {
-        digitalWrite(statusLED[2], HIGH);
+      digitalWrite(statusLEDPins[1], LOW);
+      digitalWrite(statusLEDPins[0], LOW);
+      if (digitalRead(statusLEDPins[2]) != HIGH) {
+        digitalWrite(statusLEDPins[2], HIGH);
       }
       break;
     case 1: // set to LED red to indicate status
-      digitalWrite(statusLED[2], LOW);
-      digitalWrite(statusLED[1], LOW);
-      if (digitalRead(statusLED[0]) != HIGH) {
-        digitalWrite(statusLED[0], HIGH);
+      digitalWrite(statusLEDPins[2], LOW);
+      digitalWrite(statusLEDPins[1], LOW);
+      if (digitalRead(statusLEDPins[0]) != HIGH) {
+        digitalWrite(statusLEDPins[0], HIGH);
       }
       break;
-
     case 2: // set to LED blue to indicate status
-      digitalWrite(statusLED[0], LOW);
-      digitalWrite(statusLED[2], LOW);
-      if (digitalRead(statusLED[1]) != HIGH) {
-        digitalWrite(statusLED[1], HIGH);
+      digitalWrite(statusLEDPins[0], LOW);
+      digitalWrite(statusLEDPins[2], LOW);
+      if (digitalRead(statusLEDPins[1]) != HIGH) {
+        digitalWrite(statusLEDPins[1], HIGH);
       }
       break;
-
     case 3: // set to LED purple to indicate status
-      digitalWrite(statusLED[1], LOW);
-      if (digitalRead(statusLED[2]) != HIGH) {
-        digitalWrite(statusLED[2], HIGH);
+      digitalWrite(statusLEDPins[1], LOW);
+      if (digitalRead(statusLEDPins[2]) != HIGH) {
+        digitalWrite(statusLEDPins[2], HIGH);
       }
-      if (digitalRead(statusLED[0]) != HIGH) {
-        digitalWrite(statusLED[0], HIGH);
+      if (digitalRead(statusLEDPins[0]) != HIGH) {
+        digitalWrite(statusLEDPins[0], HIGH);
       }
       break;
     case 4: // set to LED light blue to indicate status
-      digitalWrite(statusLED[0], LOW);
-      if (digitalRead(statusLED[2]) != HIGH) {
-        digitalWrite(statusLED[2], HIGH);
+      digitalWrite(statusLEDPins[0], LOW);
+      if (digitalRead(statusLEDPins[2]) != HIGH) {
+        digitalWrite(statusLEDPins[2], HIGH);
       }
-      if (digitalRead(statusLED[1]) != HIGH) {
-        digitalWrite(statusLED[1], HIGH);
+      if (digitalRead(statusLEDPins[1]) != HIGH) {
+        digitalWrite(statusLEDPins[1], HIGH);
       }
       break;
     case 5: // set to LED light red to indicate status
-      digitalWrite(statusLED[2], LOW);
-      if (digitalRead(statusLED[0]) != HIGH) {
-        digitalWrite(statusLED[0], HIGH);
+      digitalWrite(statusLEDPins[2], LOW);
+      if (digitalRead(statusLEDPins[0]) != HIGH) {
+        digitalWrite(statusLEDPins[0], HIGH);
       }
-      if (digitalRead(statusLED[1]) != HIGH) {
-        digitalWrite(statusLED[1], HIGH);
+      if (digitalRead(statusLEDPins[1]) != HIGH) {
+        digitalWrite(statusLEDPins[1], HIGH);
       }
       break;
   }
@@ -418,11 +392,6 @@ float readCompass() {
   sensors_event_t event;
   compass.getEvent(&event);
 
-  /* Display the results (magnetic vector values are in micro-Tesla (uT)) */
-  Serial.print("X: "); Serial.print(event.magnetic.x); Serial.print("  ");
-  Serial.print("Y: "); Serial.print(event.magnetic.y); Serial.print("  ");
-  Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  "); Serial.println("uT");
-
   // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
   // Calculate heading when the magnetometer is level, then correct for signs of axis.
   float heading = atan2(event.magnetic.y, event.magnetic.x);
@@ -441,7 +410,7 @@ float readCompass() {
   // Convert radians to degrees for readability.
   float headingDegrees = heading * 180 / M_PI;
 
-  bluetooth.print("Heading (degrees): "); bluetooth.println(headingDegrees);
+  bluetooth.print("Heading: "); bluetooth.println(headingDegrees);
 
   return headingDegrees;
 }
@@ -463,6 +432,3 @@ int adjustHeading(float difference) {
     return 5;
   }
 }
-
-
-
