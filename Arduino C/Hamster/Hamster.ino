@@ -1,18 +1,9 @@
-/* Hamster 0.3.3 created by Peter Chau
+/* Hamster 1.0.0 created by Peter Chau
    Start Date: June 5, 2015
-   Project: Alpha
-
-   Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward.
-
-   When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
-
-   Data is sent to PC via bluetooth serial terminal.
-
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
 */
 
 #include <SoftwareSerial.h> // Include Software Serial to allow programming and bluetooth at the same time
-#include <Bounce2.h> // Include Bounce 2 to handle button bounce
 #include <NewPing.h> // Include NewPing to handle ultraSensor data
 #include <DRV8833.h> // Include DRV8833 Dual Motor Driver Carrier - Pololu  
 #include <Wire.h>
@@ -36,17 +27,21 @@ const int rightMotor1 = 11;   // PWM control Right Motor -
 const int rightMotor2 = 10;   // PWM control Right Motor +
 const int leftMotor1 = 5;  // PWM control Left Motor +
 const int leftMotor2 = 6;  // PWM control Left Motor -
-int driveInstruction = 6; // Stop as initial command
-int dutyCycle = 0; // Set initial 0% duty cycle PWM
+int driveInstruction;
+int dutyCycle = 75; // Set initial 0% duty cycle PWM
+
+/* Learning and Roam Mode constants and variables */
+const int modeSwitch = 8; // Momentary switch for putting Hamster in learn mode
+const int modeLED = 9; // LED to indicate what mode we are in
+const int roamPin = 7; // Momentary switch for putting Hamster in learn mode
+int modeRoam = LOW; // Set inital state to drive mode (learn mode off)
+int modeState = LOW; // Set inital state to drive mode (learn mode off)
 
 /* Neural Network constants and variables */
-const int modeButton = 8; // Momentary switch for putting Hamster in learn mode
-const int modeLED = 9; // LED to indicate what mode we are in
 const float probabilityThreshold = 0.75; // Set max probability threshold to 75%
 const float probabilityFloor = 0.01; // Set probability error to 1%
 const int maxAttempts = 500; // Set max attempts to learn
-int modeState = LOW; // Set inital state to drive mode (learn mode off)
-int lastModeState = LOW; // Previous mode
+
 int probabilityCheck = 0; // Counter for checking if probabilities high threshold
 int learningAttempts = 0; // Set initial attempts to learn
 float probability[] = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167}; // Set equal initial probabilities
@@ -64,7 +59,6 @@ unsigned int ultraSensorRaw; // will store raw ultrasensor range finder distance
 
 DRV8833 driver = DRV8833(); // Create an instance of the DRV8833:
 NewPing ultraSensor(ultraSensorTriggerPin, ultraSensorEchoPin, maxDistance); // NewPing setup of pins and maximum distance.
-Bounce bouncer = Bounce(); // Create a bounce object
 SoftwareSerial bluetooth(rxPin, txPin); // RX, TX for bluetooth
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345); // Create compass object
 
@@ -75,9 +69,7 @@ void setup() {
   bluetooth.begin(9600);
 
   /* Initialize mode button and LED */
-  pinMode(modeButton, INPUT);
-  bouncer .attach(modeButton);
-  bouncer .interval(250);
+  pinMode(modeSwitch, INPUT);
   pinMode(modeLED, OUTPUT);
 
   /* Initialise the sensor */
@@ -96,7 +88,7 @@ void setup() {
     pinMode(statusLEDPins[x], OUTPUT);
   }
 
-  bluetooth.println("H A M S T E R v0.3.2 <3\n");
+  bluetooth.println("H A M S T E R v1.0.0 <3\n");
   statusLed(0); // Set status LED to Ready (green)
 }
 
@@ -109,30 +101,25 @@ void loop() {
     statusLed(4); // Ping status (light blue)
     ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
   }
-
-  currentHeading = readCompass(); // Get current heading
-
-  /* Hamster checks if ultraSensor sees anything 40 cm in front of it, and rotates right if it does. Otherwise, Hamster drives forward.*/
-  ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm and print result (0 = outside set distance range)
+  
+  /* Hamster checks if ultraSensor sees anything 40 cm in front of it */
+  ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm (0 = outside set distance range)
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
-    driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is in our safe zone
+    driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is detected within safe zone
     statusLed(1); // Object Avoidance status (Red)
-    /* Print to Serial ultraSensorCM */
-    bluetooth.print("Distance to Closest Object: ");
+    bluetooth.print("Distance to Closest Object: "); // Print to Serial ultraSensorCM 
     bluetooth.print(ultraSensorCM[0]);
     bluetooth.println(" cm");
-
-    /* Feedforward Neural Network with Back Proprogation */
-    driveInstruction = weightedRandom(probability); // Use probability to pick an action and perform it
-    dutyCycle = 75; // zip zip
+    
+    /* Use probability to pick an object avoidance action and perform it */
+    driveInstruction = weightedRandom(probability); 
     driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
-
-    /* Set to Learning Mode if mode button is pressed*/
-    bouncer .update(); // Updates mode button status
-    modeState = bouncer .read();
-
-    if (modeState == HIGH) {
-
+    
+    modeState = digitalRead(modeSwitch); // What mode are we in? Learning or Drive mode.
+    
+    /* Use Forewardfeed Back Proprogation Neural Network if Hamster is in Learning Mode and has tried to learn less than max learning attempts */
+    if (modeState == HIGH && (learningAttempts < maxAttempts)){ 
+    
       /* Check if any probability has reached the probability threshold */
       for (int x = 0; x < 6; x++) {
         if (probability[x] >= probabilityThreshold) {
@@ -143,13 +130,12 @@ void loop() {
             bluetooth.print(probability[x] * 100);
             bluetooth.print("% ");
           }
-          bluetooth.println("\n\rForward, Backwards, Rotate Right by Degree, Rotate Left by Degree, Rotate Right, Rotate Left, Stop");
+          bluetooth.print("\n\rForward, Backwards, Rotate Right by "); bluetooth.print(rotateDegree); bluetooth.print(", Rotate Left by "); bluetooth.print(rotateDegree); bluetooth.println(", Rotate Right, Rotate Left, Stop");
+          digitalWrite(modeLED, LOW); // Turn off Learning Mode LED 
         }
       }
 
       if (probabilityCheck == 0) {
-        /* Use Neural Network if Hamster tried to learn less than max attempts limit */
-        if ( learningAttempts < maxAttempts) {
           digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
           bluetooth.println("Learning Mode");
           bluetooth.print("Learning Attempts: "); // Print current attempts
@@ -211,14 +197,22 @@ void loop() {
             bluetooth.print(probability[x] * 100);
             bluetooth.print("% ");
           }
-          bluetooth.println("\n\rForward, Backwards, Rotate Right by Degree, Rotate Left by Degree, Rotate Right, Rotate Left, Stop");
+          bluetooth.print("\n\rForward, Backwards, Rotate Right by "); bluetooth.print(rotateDegree); bluetooth.print(", Rotate Left by "); bluetooth.print(rotateDegree); bluetooth.println(", Rotate Right, Rotate Left, Stop");
 
           learningAttempts++; // Increase learning tracker
         }
-      }
-    }
-  } else {
-    /* Check if we are driving straight */
+    } else if (modeState == LOW || (learningAttempts >= maxAttempts)){
+    digitalWrite(modeLED, LOW); // Turn off Learning Mode LED 
+    } 
+    } else {
+      // Go forwards
+      driveInstruction = 0; // Drive Forwards
+      status = 3; // Wander status (Purple)
+
+  /* Check if we are in Standby Mode */
+  modeRoam = digitalRead(roamPin);
+  if (modeRoam == HIGH || modeState == HIGH){
+        /* Check if we are driving straight */
     if (driveInstruction == 0) { //
       float targetHeading = currentHeading; // Set target heading
       currentHeading = readCompass(); // Find current heading
@@ -226,21 +220,14 @@ void loop() {
       if ( difference > -1 && difference < 1) { // Add buffer so this doesn't run all the time
         driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
       }
-    } else {
-      // Go forwards
-      driveInstruction = 0; // Drive Forwards
-      dutyCycle = 85;
-      status = 3; // Wander status (Purple)
-    }
-    driveTrain(driveInstruction, dutyCycle, 0, currentHeading);
+    } 
+    
+  currentHeading = readCompass(); // Get current heading
+  driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
+  }
   }
   statusLed(status);
   bluetooth.println("\r\n");
-
-  /* Should learning mode be switched off? */
-  if (modeState == LOW || learningAttempts >= maxAttempts) {
-    digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
-  }
 } // loop() end
 
 /* Drive Train for 2 motors on opposite sides */
@@ -374,7 +361,7 @@ void statusLed(int status) {
   }
 }
 
-/* Weighted Random Choice function  */
+/* Weighted Random Choice  */
 int weightedRandom(float* weights) {
   float seed = random(3.14); // seed the countdown with pi (yum)
   float choice = seed * 1; // reduce the seed and save into countdown

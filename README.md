@@ -1,11 +1,14 @@
-Hamster 0.3.3 created by Peter Chau
+Hamster 1.0.0 created by Peter Chau
 ===================================
 Start Date: June 5, 2015
-Project: Alpha
 
 Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward. 
 
 When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
+
+When Hamster is in 'Roam Mode', it uses the probability set to avoid objects!
+
+When Hamster is in 'Standby Mode', it does nothing until it sees something. When it does see something, it enters 'Roam Mode'
 
 Data is sent to PC via bluetooth serial terminal.
 
@@ -13,15 +16,21 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 
 To do:
 ------
-   Add mode switch
-   Add On/Off switch and function
-   Add On/Off LED indicator
    Allow Arduino to Receive Commands via bluetooth
    Read/Write probabilities to computer
 
 Log:
 ----
-###8/4/2-15 0.3.4
+###8/8/2015 1.0.0
+   Add mode switch (Learning, Standby, Roam)
+   		Implemented all 3 modes
+   		
+###8/6/2015
+	Created a prototype shield
+	Power LED
+	On/Off Switch
+
+###8/4/2015 0.3.4
    Cleaned up and optimized code
 
 ###7/30/2015 0.3.3
