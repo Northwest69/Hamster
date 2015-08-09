@@ -1,5 +1,7 @@
-Hamster 1.0.0 created by Peter Chau
-===================================
+Hamster
+=======
+Firmware: 1.0.1 
+Created by Peter Chau
 Start Date: June 5, 2015
 
 Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward. 
@@ -21,6 +23,13 @@ To do:
 
 Log:
 ----
+###8/9/2015 1.0.1
+	Memory optimizations
+		Use Flash memory for strings
+			Read from strings from memory for better performance (save the string only 1 time);
+		Reduced code appearances for printing current probabilities more than once
+		Use bytes, and boolean data types when possible
+
 ###8/8/2015 1.0.0
    Add mode switch (Learning, Standby, Roam)
    		Implemented all 3 modes
