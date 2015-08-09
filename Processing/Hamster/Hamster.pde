@@ -30,7 +30,7 @@ void setup(){
   size(400, 400);
   background(backgroundColor);
   
-    /* Draw buttons */
+  /* Draw buttons */
   stroke(outline);  
   fill(button);  
   rect(forward[0], forward[1], boxSize, boxSize);
@@ -53,42 +53,32 @@ void draw() {
   /* Check cursor location */
   if (mouseX > forward[0] && mouseX < forward[0]+boxSize && mouseY > forward[1]-boxSize && mouseY < forward[1]+boxSize){
     overBox[0] = true;
-    fill(buttonHover);
   } else {
     overBox[0] = false;
-    fill(button);
   }
   if (mouseX > backward[0] && mouseX < backward[0]+boxSize && mouseY > backward[1] && mouseY < backward[1]+boxSize){
-    overBox[1] = true;
-    fill(buttonHover);    
+    overBox[1] = true;;    
   } else {
-    overBox[1] = false;
-    fill(button);    
+    overBox[1] = false;    
   }
   if (mouseX > rotateRight[0] && mouseX < rotateRight[0]+boxSize && mouseY > rotateRight[1] && mouseY < rotateRight[1]+boxSize){
-    overBox[2] = true;
-    fill(buttonHover);    
+    overBox[2] = true;  
   } else {
     overBox[2] = false;
-    fill(button);    
   }
   if (mouseX > rotateLeft[0] && mouseX < rotateLeft[0]+boxSize && mouseY > rotateLeft[1] && mouseY < rotateLeft[1]+boxSize){
     overBox[3] = true;
-    fill(buttonHover);    
   } else {
     overBox[3] = false;
-    fill(button);    
   }
   if (mouseX > stop[0] && mouseX < stop[0]+boxSize && mouseY > stop[1] && mouseY < stop[1]+boxSize){
     overBox[4] = true;
-    fill(buttonHover);    
   } else {
     overBox[4] = false;
-    fill(button);    
   }
-  
-    /* Send command button pressed */
-  if(mousePressed){
+ 
+/* Send command button pressed */
+if(mousePressed){
   if(overBox[0]){
     myPort.write(0);
     println('0');
@@ -107,7 +97,7 @@ void draw() {
   }
 }
 
-  /* Send command if keyboard button pressed */
+/* Send command if keyboard button pressed */
 if (key == CODED){
   if(keyCode == UP){
     myPort.write(0);
