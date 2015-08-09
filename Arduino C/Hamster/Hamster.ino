@@ -1,5 +1,5 @@
 /* Hamster
-   Firmware: 1.0.0
+   Firmware: 1.1.0
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
@@ -12,6 +12,7 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
+#include <math.h>
 
 /* Bluetooth Communications constants */
 const byte rxPin = A2;
@@ -20,6 +21,7 @@ const byte txPin = A3;
 /* Compass Navigations variables */
 float currentHeading;
 float rotateDegree = 30;
+byte val; // For receiving commands from Processing
 
 /* Status LED constants and variables */
 const byte statusLEDPins[] = {4, 2, 3}; // Array for Status LED with pins for red, green, and blue
@@ -94,8 +96,8 @@ void setup() {
   /* Initalize pins for bluetooth*/
   pinMode(rxPin, INPUT);
   pinMode(txPin, OUTPUT);
-  bluetooth.begin(9600);
-
+  bluetooth.begin(38400);
+    
   /* Initialize mode button and LED */
   pinMode(modeSwitch, INPUT);
   pinMode(modeLED, OUTPUT);
@@ -119,7 +121,15 @@ void setup() {
 }
 
 void loop() {
-
+  
+  /* Get drive train command from Processing and perform it */
+  if (bluetooth.available()){
+    val = bluetooth.read();
+    if (!(isnan(val))){
+      driveTrain(val, dutyCycle, 0, 0);
+    }
+  } else {
+  
   /* Measure the distanace to closest object */
   unsigned long currentMillis = millis(); //record current time
   if (currentMillis - pingTimer > pingSpeed) { // save the last time you pinged
@@ -248,6 +258,7 @@ void loop() {
   }
   statusLed(status);
   printString(21);
+}
 } // loop() end
 
 /* Drive Train for 2 motors on opposite sides */

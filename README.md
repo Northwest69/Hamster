@@ -1,6 +1,6 @@
 Hamster
 =======
-Firmware: 1.0.1 
+Firmware: 1.1.1 
 Created by Peter Chau
 Start Date: June 5, 2015
 
@@ -18,11 +18,18 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 
 To do:
 ------
-   Allow Arduino to Receive Commands via bluetooth
    Read/Write probabilities to computer
 
 Log:
 ----
+###8/9/2015 1.1.0
+	Created Processing software for Hamster
+	Allow Arduino to Receive Commands via bluetooth
+		Can control driving instructions for drive train
+			via on screen buttons
+			via keys (up down left right control (stop))
+	Configured Bluetooth to communicate at 38400 BAUD
+
 ###8/9/2015 1.0.1
 	Memory optimizations
 		Use Flash memory for strings
