@@ -1,5 +1,5 @@
 /* Hamster
-   Firmware: 1.1.0
+   Firmware: 1.1.1
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
@@ -32,6 +32,8 @@ const byte rightMotor1 = 11;   // PWM control Right Motor -
 const byte rightMotor2 = 10;   // PWM control Right Motor +
 const byte leftMotor1 = 5;  // PWM control Left Motor +
 const byte leftMotor2 = 6;  // PWM control Left Motor -
+const int loopSpeed = 50; // 50ms between loops
+long loopTimer = 0; // will store last time loop occurred
 byte driveInstruction;
 byte dutyCycle = 75; // Set initial 0% duty cycle PWM
 
@@ -55,10 +57,8 @@ float probabilityRemainder; // To hold remaining probability when floor has been
 const byte ultraSensorTriggerPin = 12;  // Arduino pin tied to trigger pin on the ultrasonic sensor.
 const byte ultraSensorEchoPin = 13;  // Arduino pin tied to echo pin on the ultrasonic sensor.
 const int maxDistance = 100;
-const int pingSpeed = 50; // 50ms between pings
 const int safeZone = 40; // 40cm between Hamster and any object
 int ultraSensorCM[1]; // will stored distance from object in cm
-long pingTimer = 0; // will store last time ping occurred
 unsigned int ultraSensorRaw; // will store raw ultrasensor range finder distance
 
 DRV8833 driver = DRV8833(); // Create an instance of the DRV8833:
@@ -121,7 +121,7 @@ void setup() {
 }
 
 void loop() {
-  
+
   /* Get drive train command from Processing and perform it */
   if (bluetooth.available()){
     val = bluetooth.read();
@@ -129,15 +129,15 @@ void loop() {
       driveTrain(val, dutyCycle, 0, 0);
     }
   } else {
-  
-  /* Measure the distanace to closest object */
-  unsigned long currentMillis = millis(); //record current time
-  if (currentMillis - pingTimer > pingSpeed) { // save the last time you pinged
-    pingTimer += pingSpeed; // update time since last ping
+
+  /* Measure the time since last loop */
+  unsigned long currentLoopMillis = millis(); // record current time
+  if (currentLoopMillis - loopTimer > loopSpeed) { // save the last time you looped
+    loopTimer += loopSpeed; // update time since last ping
+    
     statusLed(4); // Ping status (light blue)
     ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
-  }
-
+  
   /* Hamster checks if ultraSensor sees anything 40 cm in front of it */
   ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm (0 = outside set distance range)
   if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
@@ -258,7 +258,8 @@ void loop() {
   }
   statusLed(status);
   printString(21);
-}
+  }
+  }
 } // loop() end
 
 /* Drive Train for 2 motors on opposite sides */

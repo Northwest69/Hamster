@@ -19,16 +19,24 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 To do:
 ------
    Read/Write probabilities to computer
-
+   Add Speed control from computer
+   Add Learning mode control from computer
+   	Learning Attempts
+   	Current Attempts
+   	Max Attempts
+   Add Rotation degree control from computer
+   Add probability stream to computer display
+   
 Log:
 ----
-###8/9/2015 1.1.0
+###8/9/2015 1.1.1
 	Created Processing software for Hamster
 	Allow Arduino to Receive Commands via bluetooth
 		Can control driving instructions for drive train
 			via on screen buttons
 			via keys (up down left right control (stop))
 	Configured Bluetooth to communicate at 38400 BAUD
+		Optimized timing  to 1 loop per 50ms
 
 ###8/9/2015 1.0.1
 	Memory optimizations

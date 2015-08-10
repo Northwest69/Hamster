@@ -1,5 +1,5 @@
 /* Hamster
-   Software: 0.1.0
+   Software: 0.1.1
    Created by Peter Chau
    Start Date: August 9, 2015
 */
@@ -25,7 +25,7 @@ color outline = #000000;
 
 void setup(){
   String portName = Serial.list()[1]; //1 is bluetooth, 2 is serial
-  myPort = new Serial(this, portName, 9600);
+  myPort = new Serial(this, portName, 38400);
   
   size(400, 400);
   background(backgroundColor);
