@@ -1,5 +1,5 @@
 /* Hamster
-   Firmware: 1.1.1
+   Firmware: 1.2.0
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
@@ -13,6 +13,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 #include <math.h>
+#include <SerialCommand.h> // Include to parse serial in strings
 
 /* Bluetooth Communications constants */
 const byte rxPin = A2;
@@ -63,41 +64,21 @@ unsigned int ultraSensorRaw; // will store raw ultrasensor range finder distance
 
 DRV8833 driver = DRV8833(); // Create an instance of the DRV8833:
 NewPing ultraSensor(ultraSensorTriggerPin, ultraSensorEchoPin, maxDistance); // NewPing setup of pins and maximum distance.
-SoftwareSerial bluetooth(rxPin, txPin); // RX, TX for bluetooth
+SoftwareSerial bluetooth = SoftwareSerial(rxPin, txPin); // RX, TX for bluetooth
+SerialCommand SCmd(bluetooth);   // The demo SerialCommand object, using the SoftwareSerial Constructor
+
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345); // Create compass object
 
-/* Save strings to Flash Memory */
-const char heading[] PROGMEM = "Heading: ";
-const char difference[] PROGMEM = "Difference: ";
-const char targetHeading[] PROGMEM = "\r\nTarget Heading: ";
-const char forward[] PROGMEM = "Forward";
-const char backward[] PROGMEM = "Backward";
-const char rotateRightBy[] PROGMEM = "Rotate Right by ";
-const char rotateLeftBy[] PROGMEM = "Rotate Left by ";
-const char rotateRight[] PROGMEM = "Rotate Right";
-const char rotateLeft[] PROGMEM = "Rotate Left";
-const char distance[] PROGMEM = "Distance to Closest Object: ";
-const char cm[] PROGMEM = " cm";
-const char thresholdReached[] PROGMEM = "Probability Threshold Reached";
-const char learningMode[] PROGMEM = "Learning Mode";
-const char learningA[] PROGMEM = "Learning Attempts: ";
-const char probability1[] PROGMEM = "Probability[";
-const char probabilityF[] PROGMEM = "] has reached the Probability Floor";
-const char probabilities[] PROGMEM = "Probability: ";
-const char percent[] PROGMEM = "% ";
-const char probabilityS1[] PROGMEM = "\n\rForward, Backwards, Rotate Right by ";
-const char probabilityS2[] PROGMEM = ", Rotate Left by ";
-const char probabilityS3[] PROGMEM = ", Rotate Right, Rotate Left, Stop";
-const char newnew[] PROGMEM = "\r\n";
-const char* const string_table[] PROGMEM = {heading, difference, targetHeading, forward, backward, rotateRightBy, rotateLeftBy, rotateRight, rotateLeft, distance, cm, thresholdReached, learningMode, learningA, probability1, probabilityF, probabilities, percent, probabilityS1, probabilityS2, probabilityS3, newnew}; // Then set up a table to refer to your strings.
-char buffer[30];    // make sure this is large enough for the largest string it must hold
 
 void setup() {
   /* Initalize pins for bluetooth*/
   pinMode(rxPin, INPUT);
   pinMode(txPin, OUTPUT);
   bluetooth.begin(38400);
-    
+
+  /* Setup callbacks for SerialCommand commands */
+  SCmd.addCommand("D", process_command); // Converts two arguments to integers and echos them back
+
   /* Initialize mode button and LED */
   pinMode(modeSwitch, INPUT);
   pinMode(modeLED, OUTPUT);
@@ -122,145 +103,139 @@ void setup() {
 
 void loop() {
 
-  /* Get drive train command from Processing and perform it */
-  if (bluetooth.available()){
-    val = bluetooth.read();
-    if (!(isnan(val))){
-      driveTrain(val, dutyCycle, 0, 0);
-    }
+  if (bluetooth.available()>0) {
+    SCmd.readSerial();     // Process serial commands
   } else {
 
-  /* Measure the time since last loop */
-  unsigned long currentLoopMillis = millis(); // record current time
-  if (currentLoopMillis - loopTimer > loopSpeed) { // save the last time you looped
-    loopTimer += loopSpeed; // update time since last ping
-    
-    statusLed(4); // Ping status (light blue)
-    ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
-  
-  /* Hamster checks if ultraSensor sees anything 40 cm in front of it */
-  ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm (0 = outside set distance range)
-  if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
-    driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is detected within safe zone
-    statusLed(1); // Object Avoidance status (Red)
-    printString(9); // Print to Serial ultraSensorCM
-    bluetooth.print(ultraSensorCM[0]);
-    printString(10);
+    /* Measure the time since last loop */
+    unsigned long currentLoopMillis = millis(); // record current time
+    if (currentLoopMillis - loopTimer > loopSpeed) { // save the last time you looped
+      loopTimer += loopSpeed; // update time since last ping
 
-    /* Use probability to pick an object avoidance action and perform it */
-    driveInstruction = weightedRandom(probability);
-    driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
+      statusLed(4); // Ping status (light blue)
+      ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
 
-    modeState = digitalRead(modeSwitch); // What mode are we in? Learning or Drive mode.
+      /* Hamster checks if ultraSensor sees anything 40 cm in front of it */
+      ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm (0 = outside set distance range)
+      if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
+        driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is detected within safe zone
+        statusLed(1); // Object Avoidance status (Red)
 
-    /* Use Forewardfeed Back Proprogation Neural Network if Hamster is in Learning Mode and has tried to learn less than max learning attempts */
-    if (modeState == HIGH && (learningAttempts < maxAttempts)) {
+        /* Use probability to pick an object avoidance action and perform it */
+        driveInstruction = weightedRandom(probability);
+        driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
 
-      /* Check if any probability has reached the probability threshold */
-      for (byte x = 0; x < 6; x++) {
-        if (probability[x] >= probabilityThreshold) {
-          probabilityCheck = true;
-          printString(11);
-          digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
-        }
-      }
+        modeState = digitalRead(modeSwitch); // What mode are we in? Learning or Drive mode.
 
-      if (probabilityCheck == false) {
-        digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
-        printString(12);
-        printString(13); // Print current attempts
-        bluetooth.println(learningAttempts);
+        /* Use Forewardfeed Back Proprogation Neural Network if Hamster is in Learning Mode and has tried to learn less than max learning attempts */
+        if (modeState == HIGH && (learningAttempts < maxAttempts)) {
 
-        ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
-        ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
-
-        if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
-          for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
-            if (x == driveInstruction) {
-              probability[x] = probability[x] - 0.01;
-            } else {
-              probability[x] = probability[x] + 0.00167;
+          /* Check if any probability has reached the probability threshold */
+          for (byte x = 0; x < 6; x++) {
+            if (probability[x] >= probabilityThreshold) {
+              probabilityCheck = true;
+              digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
             }
-            status = 5; // Action Failed status (light red)
           }
-        }
-        else if (ultraSensorCM[1] < ultraSensorCM[0]) {
-          for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
-            if (x == driveInstruction) {
-              probability[x] = probability[x] - 0.01;
-            } else {
-              probability[x] = probability[x] + 0.00167;
-            }
-            status = 5; // Action Failed status (light red)
-          }
-        }
-        else {
-          for (byte x = 0; x < 6; x++) { // Increase drive instruction's probability
-            if (x == driveInstruction) {
-              probability[x] = probability[x] + 0.01;
-            } else {
-              probability[x] = probability[x] - 0.00167;
-            }
-            status = 2; // Action Success status (Blue)
-          }
-        }
 
-        /* Check if any probabilityFloor has been reached*/
-        for (byte x = 0; x < 6; x++) {
-          if (probability[x] <= probabilityFloor) {
-            /* Split remaining probability up between other probabilities */
-            probabilityRemainder = probability[x];
-            probability[x] = 0;
-            for (byte x = 0; x < 6; x++) {
-              if (probability != 0) {
-                probability[x] += probabilityRemainder / 6;
+          if (probabilityCheck == false) {
+            digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
+
+            ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
+            ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
+
+            if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
+              for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
+                if (x == driveInstruction) {
+                  probability[x] = probability[x] - 0.01;
+                } else {
+                  probability[x] = probability[x] + 0.00167;
+                }
+                status = 5; // Action Failed status (light red)
               }
             }
-            printString(14); bluetooth.print(x); printString(15);
+            else if (ultraSensorCM[1] < ultraSensorCM[0]) {
+              for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
+                if (x == driveInstruction) {
+                  probability[x] = probability[x] - 0.01;
+                } else {
+                  probability[x] = probability[x] + 0.00167;
+                }
+                status = 5; // Action Failed status (light red)
+              }
+            }
+            else {
+              for (byte x = 0; x < 6; x++) { // Increase drive instruction's probability
+                if (x == driveInstruction) {
+                  probability[x] = probability[x] + 0.01;
+                } else {
+                  probability[x] = probability[x] - 0.00167;
+                }
+                status = 2; // Action Success status (Blue)
+              }
+            }
+
+            /* Check if any probabilityFloor has been reached*/
+            for (byte x = 0; x < 6; x++) {
+              if (probability[x] <= probabilityFloor) {
+                /* Split remaining probability up between other probabilities */
+                probabilityRemainder = probability[x];
+                probability[x] = 0;
+                for (byte x = 0; x < 6; x++) {
+                  if (probability != 0) {
+                    probability[x] += probabilityRemainder / 6;
+                  }
+                }
+              }
+            }
+
+            learningAttempts++; // Increase learning tracker
+          }
+        } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
+          digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
+        }
+
+      } else {
+        // Go forwards
+        driveInstruction = 0; // Drive Forwards
+        status = 3; // Wander status (Purple)
+
+        /* Check if we are driving straight */
+        if (driveInstruction == 0) { //
+          float targetHeading = currentHeading; // Set target heading
+          currentHeading = readCompass(); // Find current heading
+          float difference = targetHeading - currentHeading;
+          if ( difference > -1 && difference < 1) { // Add buffer so this doesn't run all the time
+            driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
           }
         }
 
-        learningAttempts++; // Increase learning tracker
-      }
-    } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
-      digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
-    }
-
-    /* Print current drive train probabilities */
-    printString(16);
-    for (byte x = 0; x < 6; x++) {
-      bluetooth.print(probability[x] * 100);
-      printString(17);
-    }
-    printString(18); bluetooth.print(rotateDegree); printString(19); bluetooth.print(rotateDegree); printString(20);
-
-  } else {
-    // Go forwards
-    driveInstruction = 0; // Drive Forwards
-    status = 3; // Wander status (Purple)
-
-    /* Check if we are in Standby Mode */
-    modeRoam = digitalRead(roamPin);
-    if (modeRoam == HIGH || modeState == HIGH) {
-      /* Check if we are driving straight */
-      if (driveInstruction == 0) { //
-        float targetHeading = currentHeading; // Set target heading
-        currentHeading = readCompass(); // Find current heading
-        float difference = targetHeading - currentHeading;
-        if ( difference > -1 && difference < 1) { // Add buffer so this doesn't run all the time
-          driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
+        /* Check if we are in Standby Mode */
+        modeRoam = digitalRead(roamPin);
+        if (modeRoam == HIGH || modeState == HIGH) {
+          currentHeading = readCompass(); // Get current heading
+          driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
         }
       }
-
-      currentHeading = readCompass(); // Get current heading
-      driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
+      statusLed(status);
     }
   }
-  statusLed(status);
-  printString(21);
-  }
-  }
 } // loop() end
+
+void process_command() {
+  int aNumber;
+  char *arg;
+
+  arg = SCmd.next();
+  if (arg != NULL)
+  {
+    aNumber = atoi(arg);  // Converts a char string to an integer
+    if (aNumber >= 0 && aNumber < 7) {
+      currentHeading = readCompass(); // Get current heading
+      driveTrain(aNumber, dutyCycle, rotateDegree, currentHeading);
+    }
+  }
+}
 
 /* Drive Train for 2 motors on opposite sides */
 void driveTrain(byte instruction, byte dutyCycle, float rotateDegree, float currentHeading) {
@@ -270,12 +245,10 @@ void driveTrain(byte instruction, byte dutyCycle, float rotateDegree, float curr
 
   switch (instruction) {
     case 0: // Forward
-      printString(3);
       driver.motorAForward(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
     case 1: // Backwards
-      printString(4);
       driver.motorAReverse(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
@@ -287,9 +260,6 @@ void driveTrain(byte instruction, byte dutyCycle, float rotateDegree, float curr
       }
       difference = targetHeading - currentHeading;
       while ((difference < -15) || (difference > 15)) { // Add buffer so this doesn't run all the time
-        printString(2); bluetooth.println(targetHeading);
-        /* CW */
-              printString(5); bluetooth.println(rotateDegree);
         driver.motorAReverse(motorSpeed);
         driver.motorBForward(motorSpeed);
         currentHeading = readCompass(); // Find current heading
@@ -307,9 +277,6 @@ void driveTrain(byte instruction, byte dutyCycle, float rotateDegree, float curr
       }
       difference = targetHeading - currentHeading;
       while ( (difference < -15) || (difference > 15)) { // Add buffer so this doesn't run all the time
-        printString(2); bluetooth.println(targetHeading);
-        /* CCW */
-        printString(6); bluetooth.println(rotateDegree);
         driver.motorAForward(motorSpeed);
         driver.motorBReverse(motorSpeed);
 
@@ -321,12 +288,10 @@ void driveTrain(byte instruction, byte dutyCycle, float rotateDegree, float curr
       }
       break;
     case 4: // Rotate right
-      printString(7);
       driver.motorAReverse(motorSpeed);
       driver.motorBForward(motorSpeed);
       break;
     case 5: // Rotate left
-      printString(8);
       driver.motorAForward(motorSpeed);
       driver.motorBReverse(motorSpeed);
       break;
@@ -424,23 +389,12 @@ float readCompass() {
 
   // Convert radians to degrees for readability.
   float headingDegrees = heading * 180 / M_PI;
-  
-    printString(0); bluetooth.println(headingDegrees);
+
   return headingDegrees;
 }
 
-void printString(char string){
-    strcpy_P(buffer, (char*)pgm_read_word(&(string_table[string])));
-    if (string == 3 || string == 4 || string == 7 || string == 8 || string == 10 || string == 11 || string == 12 || string == 15 || string == 20){
-    bluetooth.println(buffer);
-      } else {
-    bluetooth.print(buffer);
-      }
-    }
-
 /* Determine which direction we need to rotate: CCW or CW */
 byte adjustHeading(float difference) {
-  printString(1); bluetooth.println(difference);
   if (difference < -270) {
     return 4;
   } else if (difference > -270 && difference < 0) {
