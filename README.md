@@ -1,6 +1,6 @@
 Hamster
 =======
-Firmware: 1.1.1 
+Firmware: 1.2.0 
 Created by Peter Chau
 Start Date: June 5, 2015
 
@@ -26,9 +26,15 @@ To do:
    	Max Attempts
    Add Rotation degree control from computer
    Add probability stream to computer display
+   When I stop giving it a processing command, it doesn't return to non-slave mode
    
 Log:
 ----
+###8/10/2015 1.2.1
+	Now using SerialCommand Library for string and argument based serial communication
+		"D 0\r" = Drive forwards
+	Fixed Standby and Roam modes
+
 ###8/9/2015 1.1.1
 	Created Processing software for Hamster
 	Allow Arduino to Receive Commands via bluetooth

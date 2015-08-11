@@ -1,5 +1,5 @@
 /* Hamster
-   Software: 0.1.1
+   Software: 0.2.0
    Created by Peter Chau
    Start Date: August 9, 2015
 */
@@ -18,8 +18,6 @@ boolean[] overBox = {false, false, false, false, false};
  
 /* Colors */
 color button = #F00000;
-color buttonHover = #A00000;
-color buttonActive = #400000;
 color backgroundColor = #ffffff;
 color outline = #000000;
 
@@ -80,40 +78,40 @@ void draw() {
 /* Send command button pressed */
 if(mousePressed){
   if(overBox[0]){
-    myPort.write(0);
-    println('0');
+    myPort.write("D 0\r");
+    println("D 0\r");
   } else if(overBox[1]) {
-    myPort.write(1);
-    println('1');     
+    myPort.write("D 1\r");
+    println("D 1\r");     
   } else if(overBox[2]) {
-    myPort.write(4);
-    println('4');    
+    myPort.write("D 4\r");
+    println("D 4\r");    
   } else if(overBox[3]) {
-    myPort.write(5);
-    println('5');      
+    myPort.write("D 5\r");
+    println("D 5\r");      
   } else if(overBox[4]) {
-    myPort.write(6);
-    println('6');      
+    myPort.write("D 6\r");
+    println("D 6\r");      
   }
 }
 
 /* Send command if keyboard button pressed */
 if (key == CODED){
   if(keyCode == UP){
-    myPort.write(0);
-    println('0');
+    myPort.write("D 0\r");
+    println("D 0\r");
   } else if(keyCode == DOWN) {
-    myPort.write(1);
-    println('1');     
+    myPort.write("D 1\r");
+    println("D 1\r");     
   } else if(keyCode == RIGHT) {
-    myPort.write(4);
-    println('4');    
+    myPort.write("D 4\r");
+    println("D 4\r");   
   } else if(keyCode == LEFT) {
-    myPort.write(5);
-    println('5');      
+    myPort.write("D 5\r");
+    println("D 5\r");      
   } else if(keyCode == CONTROL) {
-    myPort.write(6);
-    println('6');      
+    myPort.write("D 6\r");
+    println("D 6\r");   
   }
 }
 
