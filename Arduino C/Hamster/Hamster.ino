@@ -1,5 +1,5 @@
 /* Hamster
-   Firmware: 1.2.0
+   Firmware: 1.3.0
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
@@ -48,8 +48,8 @@ boolean modeState = LOW; // Set inital state to drive mode (learn mode off)
 /* Neural Network constants and variables */
 const float probabilityThreshold = 0.75; // Set max probability threshold to 75%
 const float probabilityFloor = 0.01; // Set probability error to 1%
-const int maxAttempts = 500; // Set max attempts to learn
 boolean probabilityCheck = false; // Counter for checking if probabilities high threshold
+int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
 float probability[] = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167}; // Set equal initial probabilities
 float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
@@ -77,7 +77,11 @@ void setup() {
   bluetooth.begin(38400);
 
   /* Setup callbacks for SerialCommand commands */
-  SCmd.addCommand("D", process_command); // Converts two arguments to integers and echos them back
+  SCmd.addCommand("D", drive_command); // Drive command
+  SCmd.addCommand("S", set_speed); // Speed command
+  SCmd.addCommand("L", learning_max); // Max Learning Attempts command
+  SCmd.addCommand("R", learning_reset); // Reset Learning Attempts command
+  SCmd.addCommand("T", set_rotateDegree); //Set Rotate Degree command
 
   /* Initialize mode button and LED */
   pinMode(modeSwitch, INPUT);
@@ -97,13 +101,13 @@ void setup() {
     pinMode(statusLEDPins[x], OUTPUT);
   }
 
-  bluetooth.println(F("\n\rH A M S T E R v1.0.1 <3\n"));
+  bluetooth.println(F("\n\rH A M S T E R v1.3.0 <3\n"));
   statusLed(0); // Set status LED to Ready (green)
 }
 
 void loop() {
 
-  if (bluetooth.available()>0) {
+  if (bluetooth.available() > 0) {
     SCmd.readSerial();     // Process serial commands
   } else {
 
@@ -222,19 +226,61 @@ void loop() {
   }
 } // loop() end
 
-void process_command() {
+void drive_command() {
   int aNumber;
   char *arg;
 
   arg = SCmd.next();
-  if (arg != NULL)
-  {
+  if (arg != NULL)  {
     aNumber = atoi(arg);  // Converts a char string to an integer
     if (aNumber >= 0 && aNumber < 7) {
       currentHeading = readCompass(); // Get current heading
       driveTrain(aNumber, dutyCycle, rotateDegree, currentHeading);
     }
   }
+}
+
+void set_speed() {
+  int aNumber;
+  char *arg;
+
+  arg = SCmd.next();
+  if (arg != NULL)  {
+    aNumber = atoi(arg);  // Converts a char string to an integer
+    if (aNumber >= 0 && aNumber <= 100) {
+      dutyCycle = aNumber; // Set duty cycle PWM
+    }
+  }
+}
+
+void set_rotateDegree() {
+  int aNumber;
+  char *arg;
+
+  arg = SCmd.next();
+  if (arg != NULL)  {
+    aNumber = atoi(arg);  // Converts a char string to an integer
+    if (aNumber >= 0 && aNumber <= 359) {
+      rotateDegree = aNumber; // Set max attempts to learn
+    }
+  }
+}
+
+void learning_max() {
+  int aNumber;
+  char *arg;
+
+  arg = SCmd.next();
+  if (arg != NULL)  {
+    aNumber = atoi(arg);  // Converts a char string to an integer
+    if (aNumber >= 0 && aNumber <= 1000) {
+      maxAttempts = aNumber; // Set max attempts to learn
+    }
+  }
+}
+
+void learning_reset() {
+  learningAttempts = 0; // Reset attempts to learn
 }
 
 /* Drive Train for 2 motors on opposite sides */

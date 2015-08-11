@@ -19,18 +19,16 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 To do:
 ------
    Read/Write probabilities to computer
-   Add Speed control from computer
-   Add Learning mode control from computer
-   	Learning Attempts
-   	Current Attempts
-   	Max Attempts
-   Add Rotation degree control from computer
    Add probability stream to computer display
    When I stop giving it a processing command, it doesn't return to non-slave mode
    
 Log:
 ----
-###8/10/2015 1.2.1
+###8/11/2015 1.3.0
+	Arduino can handle set_speed, Max learning attempts, reset learning attempts, and rotate degrees
+
+
+###8/10/2015 1.2.0
 	Now using SerialCommand Library for string and argument based serial communication
 		"D 0\r" = Drive forwards
 	Fixed Standby and Roam modes
