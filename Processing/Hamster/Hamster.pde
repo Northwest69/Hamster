@@ -1,5 +1,5 @@
 /* Hamster
-   Software: 0.2.0
+   Software: 0.2.123
    Created by Peter Chau
    Start Date: August 9, 2015
 */
@@ -44,7 +44,7 @@ void setup(){
   fill(button);
   stroke(outline);    
   rect(stop[0], stop[1], boxSize, boxSize);
-}
+  }
 
 void draw() {
 
@@ -92,10 +92,11 @@ if(mousePressed){
   } else if(overBox[4]) {
     myPort.write("D 6\r");
     println("D 6\r");      
-  }
+  } 
 }
 
 /* Send command if keyboard button pressed */
+if (keyPressed == true){
 if (key == CODED){
   if(keyCode == UP){
     myPort.write("D 0\r");
@@ -113,6 +114,7 @@ if (key == CODED){
     myPort.write("D 6\r");
     println("D 6\r");   
   }
+}
 }
 
 }

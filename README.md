@@ -24,9 +24,10 @@ To do:
    
 Log:
 ----
-###8/11/2015 1.3.0
+###8/11/2015 1.3.123 / 0.2.123
 	Arduino can handle set_speed, Max learning attempts, reset learning attempts, and rotate degrees
-
+	Processing keyPressed check added. Now processing stops serial writing when key released. 
+		Hamster reenters normal operations when no signal received.
 
 ###8/10/2015 1.2.0
 	Now using SerialCommand Library for string and argument based serial communication

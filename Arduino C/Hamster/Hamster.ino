@@ -1,5 +1,5 @@
 /* Hamster
-   Firmware: 1.3.0
+   Firmware: 1.3.123
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
@@ -106,124 +106,123 @@ void setup() {
 }
 
 void loop() {
-
-  if (bluetooth.available() > 0) {
+  if (bluetooth.available()>0){
     SCmd.readSerial();     // Process serial commands
-  } else {
+  }
+  
+  /* Measure the time since last loop */
+  unsigned long currentLoopMillis = millis(); // record current time
+  if (currentLoopMillis - loopTimer > loopSpeed) { // save the last time you looped
+    loopTimer += loopSpeed; // update time since last ping
 
-    /* Measure the time since last loop */
-    unsigned long currentLoopMillis = millis(); // record current time
-    if (currentLoopMillis - loopTimer > loopSpeed) { // save the last time you looped
-      loopTimer += loopSpeed; // update time since last ping
+    statusLed(4); // Ping status (light blue)
+    ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
 
-      statusLed(4); // Ping status (light blue)
-      ultraSensorRaw = ultraSensor.ping(); // Send ping, get ping time in microseconds (uS).
+    /* Hamster checks if ultraSensor sees anything 40 cm in front of it */
+    ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm (0 = outside set distance range)
+    if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
+      driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is detected within safe zone
+      statusLed(1); // Object Avoidance status (Red)
 
-      /* Hamster checks if ultraSensor sees anything 40 cm in front of it */
-      ultraSensorCM[0] = ultraSensorRaw / US_ROUNDTRIP_CM; // Convert ping time to distance in cm (0 = outside set distance range)
-      if (ultraSensorCM[0] > 0 && ultraSensorCM[0] <= safeZone) {
-        driveTrain(6, dutyCycle, 0, currentHeading); // Stop motors when something is detected within safe zone
-        statusLed(1); // Object Avoidance status (Red)
+      /* Use probability to pick an object avoidance action and perform it */
+      driveInstruction = weightedRandom(probability);
+      driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
 
-        /* Use probability to pick an object avoidance action and perform it */
-        driveInstruction = weightedRandom(probability);
-        driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
+      modeState = digitalRead(modeSwitch); // What mode are we in? Learning or Drive mode.
 
-        modeState = digitalRead(modeSwitch); // What mode are we in? Learning or Drive mode.
+      /* Use Forewardfeed Back Proprogation Neural Network if Hamster is in Learning Mode and has tried to learn less than max learning attempts */
+      if (modeState == HIGH && (learningAttempts < maxAttempts)) {
 
-        /* Use Forewardfeed Back Proprogation Neural Network if Hamster is in Learning Mode and has tried to learn less than max learning attempts */
-        if (modeState == HIGH && (learningAttempts < maxAttempts)) {
+        /* Check if any probability has reached the probability threshold */
+        for (byte x = 0; x < 6; x++) {
+          if (probability[x] >= probabilityThreshold) {
+            probabilityCheck = true;
+            digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
+          }
+        }
 
-          /* Check if any probability has reached the probability threshold */
+        if (probabilityCheck == false) {
+          digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
+
+          ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
+          ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
+
+          if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
+            for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
+              if (x == driveInstruction) {
+                probability[x] = probability[x] - 0.01;
+              } else {
+                probability[x] = probability[x] + 0.00167;
+              }
+              status = 5; // Action Failed status (light red)
+            }
+          }
+          else if (ultraSensorCM[1] < ultraSensorCM[0]) {
+            for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
+              if (x == driveInstruction) {
+                probability[x] = probability[x] - 0.01;
+              } else {
+                probability[x] = probability[x] + 0.00167;
+              }
+              status = 5; // Action Failed status (light red)
+            }
+          }
+          else {
+            for (byte x = 0; x < 6; x++) { // Increase drive instruction's probability
+              if (x == driveInstruction) {
+                probability[x] = probability[x] + 0.01;
+              } else {
+                probability[x] = probability[x] - 0.00167;
+              }
+              status = 2; // Action Success status (Blue)
+            }
+          }
+
+          /* Check if any probabilityFloor has been reached*/
           for (byte x = 0; x < 6; x++) {
-            if (probability[x] >= probabilityThreshold) {
-              probabilityCheck = true;
-              digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
+            if (probability[x] <= probabilityFloor) {
+              /* Split remaining probability up between other probabilities */
+              probabilityRemainder = probability[x];
+              probability[x] = 0;
+              for (byte x = 0; x < 6; x++) {
+                if (probability != 0) {
+                  probability[x] += probabilityRemainder / 6;
+                }
+              }
             }
           }
 
-          if (probabilityCheck == false) {
-            digitalWrite(modeLED, HIGH); // Turn on Learning Mode LED
-
-            ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
-            ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
-
-            if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
-              for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
-                if (x == driveInstruction) {
-                  probability[x] = probability[x] - 0.01;
-                } else {
-                  probability[x] = probability[x] + 0.00167;
-                }
-                status = 5; // Action Failed status (light red)
-              }
-            }
-            else if (ultraSensorCM[1] < ultraSensorCM[0]) {
-              for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
-                if (x == driveInstruction) {
-                  probability[x] = probability[x] - 0.01;
-                } else {
-                  probability[x] = probability[x] + 0.00167;
-                }
-                status = 5; // Action Failed status (light red)
-              }
-            }
-            else {
-              for (byte x = 0; x < 6; x++) { // Increase drive instruction's probability
-                if (x == driveInstruction) {
-                  probability[x] = probability[x] + 0.01;
-                } else {
-                  probability[x] = probability[x] - 0.00167;
-                }
-                status = 2; // Action Success status (Blue)
-              }
-            }
-
-            /* Check if any probabilityFloor has been reached*/
-            for (byte x = 0; x < 6; x++) {
-              if (probability[x] <= probabilityFloor) {
-                /* Split remaining probability up between other probabilities */
-                probabilityRemainder = probability[x];
-                probability[x] = 0;
-                for (byte x = 0; x < 6; x++) {
-                  if (probability != 0) {
-                    probability[x] += probabilityRemainder / 6;
-                  }
-                }
-              }
-            }
-
-            learningAttempts++; // Increase learning tracker
-          }
-        } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
-          digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
+          learningAttempts++; // Increase learning tracker
         }
+      } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
+        digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
+      }
 
-      } else {
-        // Go forwards
-        driveInstruction = 0; // Drive Forwards
-        status = 3; // Wander status (Purple)
+    } else {
+      // Go forwards
+      driveInstruction = 0; // Drive Forwards
+      status = 3; // Wander status (Purple)
 
-        /* Check if we are driving straight */
-        if (driveInstruction == 0) { //
-          float targetHeading = currentHeading; // Set target heading
-          currentHeading = readCompass(); // Find current heading
-          float difference = targetHeading - currentHeading;
-          if ( difference > -1 && difference < 1) { // Add buffer so this doesn't run all the time
-            driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
-          }
-        }
-
-        /* Check if we are in Standby Mode */
-        modeRoam = digitalRead(roamPin);
-        if (modeRoam == HIGH || modeState == HIGH) {
-          currentHeading = readCompass(); // Get current heading
-          driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
+      /* Check if we are driving straight */
+      if (driveInstruction == 0) { //
+        float targetHeading = currentHeading; // Set target heading
+        currentHeading = readCompass(); // Find current heading
+        float difference = targetHeading - currentHeading;
+        if ( difference > -1 && difference < 1) { // Add buffer so this doesn't run all the time
+          driveInstruction = adjustHeading(difference); // Determine rotation direction: CCW or CW
         }
       }
-      statusLed(status);
+
+      /* Check if we are in Standby Mode */
+      modeRoam = digitalRead(roamPin);
+      if (modeRoam == HIGH || modeState == HIGH) {
+        currentHeading = readCompass(); // Get current heading
+        driveTrain(driveInstruction, dutyCycle, rotateDegree, currentHeading);
+      }
     }
+    statusLed(status);
   }
+
 } // loop() end
 
 void drive_command() {
