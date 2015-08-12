@@ -24,6 +24,10 @@ To do:
    
 Log:
 ----
+###8/12/2015 1.3.123 / 0.3.0
+	Started Implementing ControlP5 for GUI
+	Processing can now set duty cycle, and rotate degree
+
 ###8/11/2015 1.3.123 / 0.2.123
 	Arduino can handle set_speed, Max learning attempts, reset learning attempts, and rotate degrees
 	Processing keyPressed check added. Now processing stops serial writing when key released. 

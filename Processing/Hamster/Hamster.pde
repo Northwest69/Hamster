@@ -1,11 +1,14 @@
 /* Hamster
-   Software: 0.2.123
+   Software: 0.3.0
    Created by Peter Chau
    Start Date: August 9, 2015
 */
 
 import processing.serial.*;
+import controlP5.*; // For GUI interface
+
 Serial myPort;
+ControlP5 myControls;
 
 /* Buttons */
 int[] forward = {150, 0};
@@ -15,39 +18,36 @@ int[] rotateLeft = {0, 150};
 int[] stop = {150, 150};
 int boxSize = 100;
 boolean[] overBox = {false, false, false, false, false};
- 
-/* Colors */
-color button = #F00000;
-color backgroundColor = #ffffff;
-color outline = #000000;
+
+/* Slider */ 
+public int dutyCycle = 75;
+public float rotateDegree = 30;
+int[] dutyCycleSlider = {450, 50};
+int[] rotateDegreeSlider = {500, 50};
 
 void setup(){
   String portName = Serial.list()[1]; //1 is bluetooth, 2 is serial
   myPort = new Serial(this, portName, 38400);
   
-  size(400, 400);
-  background(backgroundColor);
+  size(600, 500);
+  background(100);
   
-  /* Draw buttons */
-  stroke(outline);  
-  fill(button);  
-  rect(forward[0], forward[1], boxSize, boxSize);
-  fill(button);
-  stroke(outline);    
-  rect(backward[0], backward[1], boxSize, boxSize);
-  fill(button);
-  stroke(outline);    
-  rect(rotateRight[0], rotateRight[1], boxSize, boxSize);
-  fill(button);
-  stroke(outline);    
-  rect(rotateLeft[0], rotateLeft[1], boxSize, boxSize);
-  fill(button);
-  stroke(outline);    
-  rect(stop[0], stop[1], boxSize, boxSize);
+  /* GUI interface */
+  mySliders = new ControlP5(this);
+  myControls.addSlider("dutyCycle", 0, 100, dutyCycle, dutyCycleSlider[0], dutyCycleSlider[1], 10, 100);
+  myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 100);
   }
 
 void draw() {
-
+  background(100);
+  
+  /* Draw buttons */
+  rect(forward[0], forward[1], boxSize, boxSize); 
+  rect(backward[0], backward[1], boxSize, boxSize);  
+  rect(rotateRight[0], rotateRight[1], boxSize, boxSize);   
+  rect(rotateLeft[0], rotateLeft[1], boxSize, boxSize);   
+  rect(stop[0], stop[1], boxSize, boxSize);
+  
   /* Check cursor location */
   if (mouseX > forward[0] && mouseX < forward[0]+boxSize && mouseY > forward[1]-boxSize && mouseY < forward[1]+boxSize){
     overBox[0] = true;
@@ -113,8 +113,13 @@ if (key == CODED){
   } else if(keyCode == CONTROL) {
     myPort.write("D 6\r");
     println("D 6\r");   
+  } 
+} else if(key == ENTER) {
+    myPort.write("S " + dutyCycle + "\r");
+    println("S " + dutyCycle + "\r");  
+    myPort.write("I " + rotateDegree + "\r");
+    println("I " + rotateDegree + "\r");   
   }
-}
 }
 
 }
