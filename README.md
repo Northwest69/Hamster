@@ -1,6 +1,6 @@
 Hamster
 =======
-Firmware: 1.2.0 
+Firmware: 1.3.123 
 Created by Peter Chau
 Start Date: June 5, 2015
 
