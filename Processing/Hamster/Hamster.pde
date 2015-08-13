@@ -16,12 +16,17 @@ public float rotateDegree = 30;
 int[] dutyCycleSlider = {250, 50};
 int[] rotateDegreeSlider = {300, 50};
 
+/* Textfields */
+String maxAttempts;
+int[] maxAttempt = {400, 50};
+
 /* Button */
 int[] forward = {100, 50};
 int[] backward = {100, 150};
 int[] left = {50, 100};
 int[] right = {150, 100};
 int[] stop = {100, 100};
+int[] reset = {400, 175};
 
 void setup(){
   String portName = Serial.list()[1]; //1 is bluetooth, 2 is serial
@@ -36,6 +41,9 @@ void setup(){
   // Sliders
   myControls.addSlider("dutyCycle", 0, 100, dutyCycle, dutyCycleSlider[0], dutyCycleSlider[1], 10, 150);
   myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 150);
+  
+  // Textfields
+  myControls.addTextfield("maxAttempts").setPosition(maxAttempt[0], maxAttempt[1]).setSize(50, 25).setAutoClear(false);
   
   // Buttons
   myControls.addButton("Forward")
@@ -103,6 +111,19 @@ void setup(){
       }
     }
   ); 
+  myControls.addButton("Reset")
+    .setPosition(reset[0], reset[1])
+    .setSize(50, 25)
+    .setValue(100)
+    .addCallback(new CallbackListener() {
+      public void controlEvent(CallbackEvent event) {
+        if (event.getAction() == ControlP5.ACTION_PRESSED) {
+              myPort.write("R\r");
+              println("R\r");
+        }
+      }
+    }
+  );  
 }
 
 void draw() {
@@ -131,7 +152,10 @@ if (key == CODED){
     myPort.write("S " + dutyCycle + "\r");
     println("S " + dutyCycle + "\r");  
     myPort.write("I " + rotateDegree + "\r");
-    println("I " + rotateDegree + "\r");   
+    println("I " + rotateDegree + "\r");
+    maxAttempts = myControls.get(Textfield.class, "maxAttempts").getText();
+    myPort.write("L " + maxAttempts + "\r");
+    println("L " + maxAttempts + "\r");    
   }
 }
 

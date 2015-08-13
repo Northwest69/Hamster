@@ -193,6 +193,7 @@ void loop() {
           }
 
           learningAttempts++; // Increase learning tracker
+          bluetooth.print("C "); bluetooth.println(learningAttempts);
         }
       } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
         digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
