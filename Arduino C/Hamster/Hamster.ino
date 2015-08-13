@@ -281,6 +281,7 @@ void learning_max() {
 
 void learning_reset() {
   learningAttempts = 0; // Reset attempts to learn
+  
 }
 
 /* Drive Train for 2 motors on opposite sides */
@@ -349,7 +350,7 @@ void driveTrain(byte instruction, byte dutyCycle, float rotateDegree, float curr
   return;
 }
 
-/* Controls status LED*/
+/* Controls status LED */
 void statusLed(byte status) {
   switch (status) {
     case 0: // set to LED green to indicate status
