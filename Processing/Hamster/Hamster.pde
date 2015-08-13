@@ -1,5 +1,5 @@
 /* Hamster
- Software: 0.4.0
+ Software: 0.5.0
  Created by Peter Chau
  Start Date: August 9, 2015
  */
@@ -21,7 +21,7 @@ int[] rotateDegreeSlider = {
 };
 
 /* Textfields */
-String learningAttempts = "0";
+String attempts = "0";
 String maxAttempts = "500";
 int[] learningAttempt = {
   400, 100
@@ -70,104 +70,105 @@ void setup() {
 
   // Textfields
   myControls.addTextfield("maxAttempts").setPosition(maxAttempt[0], maxAttempt[1]).setText(maxAttempts).setSize(50, 25).setAutoClear(false);
-  myControls.addTextfield("learningAttempts").setPosition(learningAttempt[0], learningAttempt[1]).setSize(50, 25).setText(learningAttempts).setAutoClear(false);
+  myControls.addTextfield("learningAttempts").setPosition(learningAttempt[0], learningAttempt[1]).setText(attempts).setSize(50, 25).setAutoClear(false);
 
   // Buttons
   myControls.addButton("Forward")
     .setPosition(forward[0], forward[1])
-      .setSize(50, 50)
-        .setValue(100)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("D 0\r");
-                println("D 0\r");
-              }
-            }
-          }
+    .setSize(50, 50)
+    .setValue(100)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("D 0\r");
+        println("D 0\r");
+      }
+    }
+  }
   );  
   myControls.addButton("Backward")
     .setPosition(backward[0], backward[1])
-      .setSize(50, 50)
-        .setValue(100)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("D 1\r");
-                println("D 1\r");
-              }
-            }
-          }
+    .setSize(50, 50)
+    .setValue(100)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("D 1\r");
+        println("D 1\r");
+      }
+    }
+  }
   ); 
   myControls.addButton("Right")
     .setPosition(right[0], right[1])
-      .setSize(50, 50)
-        .setValue(100)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("D 4\r");
-                println("D 4\r");
-              }
-            }
-          }
+    .setSize(50, 50)
+    .setValue(100)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("D 4\r");
+        println("D 4\r");
+      }
+    }
+  }
   ); 
   myControls.addButton("Left")
     .setPosition(left[0], left[1])
-      .setSize(50, 50)
-        .setValue(100)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("D 5\r");
-                println("D 5\r");
-              }
-            }
-          }
+    .setSize(50, 50)
+    .setValue(100)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("D 5\r");
+        println("D 5\r");
+      }
+    }
+  }
   ); 
   myControls.addButton("Stop")
     .setPosition(stop[0], stop[1])
-      .setSize(50, 50)
-        .setValue(100)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("D 6\r");
-                println("D 6\r");
-              }
-            }
-          }
+    .setSize(50, 50)
+    .setValue(100)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("D 6\r");
+        println("D 6\r");
+      }
+    }
+  }
   ); 
   myControls.addButton("Set")
     .setPosition(set[0], set[1])
-      .setSize(50, 25)
-        .setValue(0)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("S " + dutyCycle + "\r");
-                println("S " + dutyCycle + "\r");  
-                myPort.write("T " + rotateDegree + "\r");
-                println("T " + rotateDegree + "\r");
-                maxAttempts = myControls.get(Textfield.class, "maxAttempts").getText();
-                myPort.write("L " + maxAttempts + "\r");
-                println("L " + maxAttempts + "\r");
-              }
-            }
-          }
+    .setSize(50, 25)
+    .setValue(0)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("S " + dutyCycle + "\r");
+        println("S " + dutyCycle + "\r");  
+        myPort.write("T " + rotateDegree + "\r");
+        println("T " + rotateDegree + "\r");
+        maxAttempts = myControls.get(Textfield.class, "maxAttempts").getText();
+        myPort.write("L " + maxAttempts + "\r");
+        println("L " + maxAttempts + "\r");
+      }
+    }
+  }
   );  
   myControls.addButton("Reset")
     .setPosition(reset[0], reset[1])
-      .setSize(50, 25)
-        .setValue(0)
-          .addCallback(new CallbackListener() {
-            public void controlEvent(CallbackEvent event) {
-              if (event.getAction() == ControlP5.ACTION_PRESSED) {
-                myPort.write("R\r");
-                println("R\r");
-              }
-            }
-          }
+    .setSize(50, 25)
+    .setValue(0)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        myPort.write("R\r");
+        attempts = "0";
+        println("R\r");
+      }
+    }
+  }
   );
 }
 
@@ -205,12 +206,17 @@ void draw() {
   }
 
   while (myPort.available () > 0) {
-    learningAttempts = myPort.readStringUntil('\n');
+    attempts = myPort.readStringUntil('\n');
     // if you got any bytes other than the linefeed:
-    if (learningAttempts != null) {
-      learningAttempts = trim(learningAttempts); 
-      println(learningAttempts);
+    if (attempts != null) {
+      attempts = trim(attempts);
+      String[] currentAttempts= split(attempts, " ");
+
+      if (currentAttempts[0].equals("C")) {
+        Textfield current = myControls.get(Textfield.class, "learningAttempts");
+        current.setValue(currentAttempts[1]);
+        println(currentAttempts[0]);
+      }
     }
   }
 }
-

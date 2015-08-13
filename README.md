@@ -18,19 +18,17 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 
 To do:
 ------
-   Auto update display of learning attempts on processing
    Add probability stream to computer display   
    Read/Write probabilities from computer, arduino, and text file
    Graph probabilities 2D then 3D
 
 Log:
 ----
-###8/12/2015 1.3.123 / 0.3.1
+###8/12/2015 1.4.0 / 0.5.0
 	Started Implementing ControlP5 for GUI
 	Processing can now set duty cycle, rotate degree, max learning attempts, and reset learning attempts
 		Added submit button and key (enter)
-	Arduino streams current learning attempts to processing 
-		Learning attempts field added
+	Learning attempts field added and Auto update display of learning attempts on processing
 
 ###8/11/2015 1.3.123 / 0.2.123
 	Arduino can handle set_speed, Max learning attempts, reset learning attempts, and rotate degrees
