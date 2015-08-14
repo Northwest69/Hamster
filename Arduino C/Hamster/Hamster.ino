@@ -1,11 +1,10 @@
 /* Hamster
-   Firmware: 1.3.123
+   Firmware: 1.4.7456
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
 */
 
-#include <avr/pgmspace.h> // Include to use PROGMEM and Flash memory
 #include <SoftwareSerial.h> // Include Software Serial to allow programming and bluetooth at the same time
 #include <NewPing.h> // Include NewPing to handle ultraSensor data
 #include <DRV8833.h> // Include DRV8833 Dual Motor Driver Carrier - Pololu  
@@ -68,7 +67,6 @@ SoftwareSerial bluetooth = SoftwareSerial(rxPin, txPin); // RX, TX for bluetooth
 SerialCommand SCmd(bluetooth);   // The demo SerialCommand object, using the SoftwareSerial Constructor
 
 Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(12345); // Create compass object
-
 
 void setup() {
   /* Initalize pins for bluetooth*/
@@ -260,7 +258,7 @@ void set_rotateDegree() {
   arg = SCmd.next();
   if (arg != NULL)  {
     aNumber = atoi(arg);  // Converts a char string to an integer
-    if (aNumber >= 0 && aNumber <= 359) {
+    if (aNumber >= 1 && aNumber <= 360) {
       rotateDegree = aNumber; // Set max attempts to learn
     }
   }
@@ -280,8 +278,11 @@ void learning_max() {
 }
 
 void learning_reset() {
-  learningAttempts = 0; // Reset attempts to learn
-  
+  // Reset to initial values
+  learningAttempts = 0;
+  maxAttempts = 500;
+  dutyCycle = 75;
+  rotateDegree = 30;
 }
 
 /* Drive Train for 2 motors on opposite sides */

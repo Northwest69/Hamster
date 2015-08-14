@@ -1,5 +1,5 @@
 /* Hamster
- Software: 0.5.0
+ Software: 0.5.7645
  Created by Peter Chau
  Start Date: August 9, 2015
  */
@@ -8,11 +8,16 @@ import processing.serial.*;
 import controlP5.*; // For GUI interface
 
 Serial myPort;
+
+// GUI Declarations
 ControlP5 myControls;
+Slider dutySlider, degreeSlider;
+Textfield attemptsTextfield, maxTextfield;
 
 /* Slider */
 public int dutyCycle = 75;
 public float rotateDegree = 30;
+
 int[] dutyCycleSlider = {
   250, 50
 };
@@ -58,21 +63,16 @@ void setup() {
   myPort = new Serial(this, portName, 38400);
   myPort.clear();
 
-  size(500, 500);
+  size(800, 250);
   background(100);
 
   /* GUI interface */
   myControls = new ControlP5(this);
+  dutySlider = myControls.addSlider("dutyCycle", 0, 100, dutyCycle, dutyCycleSlider[0], dutyCycleSlider[1], 10, 137);
+  degreeSlider = myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 137);
+  maxTextfield = myControls.addTextfield("Max Attempts").setPosition(maxAttempt[0], maxAttempt[1]).setText(maxAttempts).setSize(50, 25).setAutoClear(false);
+  attemptsTextfield = myControls.addTextfield("Current Attempts").setPosition(learningAttempt[0], learningAttempt[1]).setText(attempts).setSize(50, 25).setAutoClear(false);
 
-  // Sliders
-  myControls.addSlider("dutyCycle", 0, 100, dutyCycle, dutyCycleSlider[0], dutyCycleSlider[1], 10, 150);
-  myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 150);
-
-  // Textfields
-  myControls.addTextfield("maxAttempts").setPosition(maxAttempt[0], maxAttempt[1]).setText(maxAttempts).setSize(50, 25).setAutoClear(false);
-  myControls.addTextfield("learningAttempts").setPosition(learningAttempt[0], learningAttempt[1]).setText(attempts).setSize(50, 25).setAutoClear(false);
-
-  // Buttons
   myControls.addButton("Forward")
     .setPosition(forward[0], forward[1])
     .setSize(50, 50)
@@ -149,7 +149,7 @@ void setup() {
         println("S " + dutyCycle + "\r");  
         myPort.write("T " + rotateDegree + "\r");
         println("T " + rotateDegree + "\r");
-        maxAttempts = myControls.get(Textfield.class, "maxAttempts").getText();
+        maxAttempts = myControls.get(Textfield.class, "Max Attempts").getText();
         myPort.write("L " + maxAttempts + "\r");
         println("L " + maxAttempts + "\r");
       }
@@ -164,8 +164,15 @@ void setup() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
         myPort.write("R\r");
-        attempts = "0";
         println("R\r");
+        attempts = "0";
+        dutyCycle = 75;
+        rotateDegree = 30;
+        maxAttempts = "500";
+        attemptsTextfield.setValue(attempts);
+        dutySlider.setValue(dutyCycle);
+        degreeSlider.setValue(rotateDegree);
+        maxTextfield.setValue(maxAttempts);
       }
     }
   }
@@ -199,23 +206,22 @@ void draw() {
       println("S " + dutyCycle + "\r");  
       myPort.write("T " + rotateDegree + "\r");
       println("T " + rotateDegree + "\r");
-      maxAttempts = myControls.get(Textfield.class, "maxAttempts").getText();
+      maxAttempts = myControls.get(Textfield.class, "Max Attempts").getText();
       myPort.write("L " + maxAttempts + "\r");
       println("L " + maxAttempts + "\r");
     }
   }
 
   while (myPort.available () > 0) {
-    attempts = myPort.readStringUntil('\n');
+    String current = myPort.readStringUntil('\n');
     // if you got any bytes other than the linefeed:
-    if (attempts != null) {
-      attempts = trim(attempts);
-      String[] currentAttempts= split(attempts, " ");
-
-      if (currentAttempts[0].equals("C")) {
-        Textfield current = myControls.get(Textfield.class, "learningAttempts");
-        current.setValue(currentAttempts[1]);
-        println(currentAttempts[0]);
+    if (current != null) {
+      current = trim(current);
+      String[] currentString = split(current, " ");
+      if (currentString[0].equals("C")) {
+        attempts = currentString[1];
+        attemptsTextfield.setValue(attempts);
+        println(currentString[0]);
       }
     }
   }
