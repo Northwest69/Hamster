@@ -9,6 +9,8 @@ import controlP5.*; // For GUI interface
 
 Serial myPort;
 
+int index;
+
 // GUI Declarations
 ControlP5 myControls;
 Slider dutySlider, degreeSlider;
@@ -59,7 +61,12 @@ int[] set = {
 int[] reset = {
   400, 175
 };
-
+int[] save = {
+  300, 250
+};
+int[] load = {
+  350, 250
+};
 void setup() {
   String portName = Serial.list()[1]; //1 is bluetooth, 2 is serial
   myPort = new Serial(this, portName, 38400);
@@ -185,6 +192,46 @@ void setup() {
     }
   }
   );
+    myControls.addButton("Save")
+    .setPosition(save[0], save[1])
+    .setSize(50, 25)
+    .setValue(0)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        String[] loadFile = loadStrings("probabilities.txt");
+        String [] saveFile = loadFile;
+        saveFile = splice(saveFile, probabilities, loadFile.length);
+        saveStrings("probabilities.txt", saveFile);
+        println("Probabilities Saved!");
+        
+      }
+    }
+  }
+  );
+      myControls.addButton("Load")
+    .setPosition(load[0], load[1])
+    .setSize(50, 25)
+    .setValue(0)
+    .addCallback(new CallbackListener() {
+    public void controlEvent(CallbackEvent event) {
+      if (event.getAction() == ControlP5.ACTION_PRESSED) {
+        String[] loadFile = loadStrings("probabilities.txt");
+        index = loadFile.length-1;
+        if (index >= 0){
+        probabilities = loadFile[index];
+        myPort.write("P " + probabilities + "\r");
+                probabilityTextfield.setValue(probabilities);
+                println("Probabilities Loaded!");
+        println("P " + probabilities + "\r"); 
+        } else {
+println("Probabilities could not be loaded");
+
+        }
+      }
+    }
+  }
+      );
 }
 
 void draw() {
