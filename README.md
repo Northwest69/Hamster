@@ -18,16 +18,18 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 
 To do:
 ------
-   Add probability stream to computer display   
-   Read/Write probabilities from computer, Arduino, and text file
+   Read/Write probabilities to text file
    Graph probabilities 2D then 3D
 
 Log:
 ----
-###8/13/2015 1.4.7456 / 0.5.7654
+###8/13/2015 1.5.0 / 0.6.0
 	Update reset command from processing to Arduino
 		All fields always match Arduino
 	Changed Textfield labels
+	Arduino can now reset to initial probabilities, have probabilities set from processing
+	Arduino can now send probabilities to processing
+	Add probability stream to computer display  
 
 ###8/12/2015 1.4.0 / 0.5.0
 	Started Implementing ControlP5 for GUI

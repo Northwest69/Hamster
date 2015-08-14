@@ -1,5 +1,5 @@
 /* Hamster
- Software: 0.5.7645
+ Software: 0.6.0
  Created by Peter Chau
  Start Date: August 9, 2015
  */
@@ -12,11 +12,11 @@ Serial myPort;
 // GUI Declarations
 ControlP5 myControls;
 Slider dutySlider, degreeSlider;
-Textfield attemptsTextfield, maxTextfield;
+Textfield attemptsTextfield, maxTextfield, probabilityTextfield;
 
-/* Slider */
 public int dutyCycle = 75;
 public float rotateDegree = 30;
+public String probabilities = "0.167 0.167 0.167 0.167 0.167 0.167";
 
 int[] dutyCycleSlider = {
   250, 50
@@ -25,7 +25,6 @@ int[] rotateDegreeSlider = {
   300, 50
 };
 
-/* Textfields */
 String attempts = "0";
 String maxAttempts = "500";
 int[] learningAttempt = {
@@ -35,7 +34,10 @@ int[] maxAttempt = {
   400, 50
 };
 
-/* Button */
+int[] probability = {
+  50, 250
+};
+
 int[] forward = {
   100, 50
 };
@@ -63,7 +65,7 @@ void setup() {
   myPort = new Serial(this, portName, 38400);
   myPort.clear();
 
-  size(800, 250);
+  size(1000, 350);
   background(100);
 
   /* GUI interface */
@@ -72,6 +74,7 @@ void setup() {
   degreeSlider = myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 137);
   maxTextfield = myControls.addTextfield("Max Attempts").setPosition(maxAttempt[0], maxAttempt[1]).setText(maxAttempts).setSize(50, 25).setAutoClear(false);
   attemptsTextfield = myControls.addTextfield("Current Attempts").setPosition(learningAttempt[0], learningAttempt[1]).setText(attempts).setSize(50, 25).setAutoClear(false);
+  probabilityTextfield = myControls.addTextfield("Probabilities").setPosition(probability[0], probability[1]).setText(probabilities).setSize(200, 25).setAutoClear(false);
 
   myControls.addButton("Forward")
     .setPosition(forward[0], forward[1])
@@ -152,7 +155,10 @@ void setup() {
         maxAttempts = myControls.get(Textfield.class, "Max Attempts").getText();
         myPort.write("L " + maxAttempts + "\r");
         println("L " + maxAttempts + "\r");
-      }
+        probabilities = myControls.get(Textfield.class, "Probabilities").getText();
+        myPort.write("P " + probabilities + "\r");
+        println("P " + probabilities + "\r");      
+    }
     }
   }
   );  
@@ -169,10 +175,12 @@ void setup() {
         dutyCycle = 75;
         rotateDegree = 30;
         maxAttempts = "500";
+        probabilities = "0.167 0.167 0.167 0.167 0.167 0.167";
         attemptsTextfield.setValue(attempts);
         dutySlider.setValue(dutyCycle);
         degreeSlider.setValue(rotateDegree);
         maxTextfield.setValue(maxAttempts);
+        probabilityTextfield.setValue(probabilities);
       }
     }
   }
@@ -209,6 +217,9 @@ void draw() {
       maxAttempts = myControls.get(Textfield.class, "Max Attempts").getText();
       myPort.write("L " + maxAttempts + "\r");
       println("L " + maxAttempts + "\r");
+              probabilities = myControls.get(Textfield.class, "Probabilities").getText();
+        myPort.write("P " + probabilities + "\r");
+        println("P " + probabilities + "\r");   
     }
   }
 
@@ -221,8 +232,14 @@ void draw() {
       if (currentString[0].equals("C")) {
         attempts = currentString[1];
         attemptsTextfield.setValue(attempts);
-        println(currentString[0]);
+        //println(currentString[0]);
       }
+      if (currentString[0].equals("P")) {
+        currentString = subset(currentString, 1);
+        probabilities = join(currentString, " ");
+        probabilityTextfield.setValue(probabilities);
+        println(probabilities);
+        }
     }
   }
 }
