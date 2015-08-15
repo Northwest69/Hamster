@@ -1,5 +1,5 @@
 /* Hamster
-   Firmware: 1.5.0
+   Firmware: 1.6.0
    Created by Peter Chau
    Start Date: June 5, 2015
    Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Bluetooth Shield HC-06, and HMC5883L Triple axis compass
@@ -50,7 +50,7 @@ const float probabilityFloor = 0.01; // Set probability error to 1%
 boolean probabilityCheck = false; // Counter for checking if probabilities high threshold
 int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
-float probability[] = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167}; // Set equal initial probabilities
+float probability[] = {0.166667, 0.166667, 0.166667, 0.166667, 0.166667, 0.166667}; // Set equal initial probabilities
 float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
 
 /* Ultrasonic Rangefinder constants and variables */
@@ -146,22 +146,12 @@ void loop() {
           ultraSensorRaw = ultraSensor.ping(); // Ping and save it to ultraSensorCM[1]
           ultraSensorCM[1] = ultraSensorRaw / US_ROUNDTRIP_CM;
 
-          if (ultraSensorCM[1] == ultraSensorCM[0]) { // Check if action was successful based on change in distance
+          if (ultraSensorCM[1] <= ultraSensorCM[0]) { // Check if action was successful based on change in distance
             for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
               if (x == driveInstruction) {
-                probability[x] = probability[x] - 0.01;
+                probability[x] = probability[x] - 0.001000;
               } else {
-                probability[x] = probability[x] + 0.00167;
-              }
-              status = 5; // Action Failed status (light red)
-            }
-          }
-          else if (ultraSensorCM[1] < ultraSensorCM[0]) {
-            for (byte x = 0; x < 6; x++) { // Decrease drive instruction's probability
-              if (x == driveInstruction) {
-                probability[x] = probability[x] - 0.01;
-              } else {
-                probability[x] = probability[x] + 0.00167;
+                probability[x] = probability[x] + 0.000167;
               }
               status = 5; // Action Failed status (light red)
             }
@@ -169,9 +159,9 @@ void loop() {
           else {
             for (byte x = 0; x < 6; x++) { // Increase drive instruction's probability
               if (x == driveInstruction) {
-                probability[x] = probability[x] + 0.01;
+                probability[x] = probability[x] + 0.001000;
               } else {
-                probability[x] = probability[x] - 0.00167;
+                probability[x] = probability[x] - 0.000167;
               }
               status = 2; // Action Success status (Blue)
             }
@@ -193,12 +183,12 @@ void loop() {
 
           learningAttempts++; // Increase learning tracker
           bluetooth.print("C "); bluetooth.println(learningAttempts);
-          bluetooth.print("P "); bluetooth.print(probability[0]);
-          bluetooth.print(" "); bluetooth.print(probability[1]);
-          bluetooth.print(" "); bluetooth.print(probability[2]);
-          bluetooth.print(" "); bluetooth.print(probability[3]);
-          bluetooth.print(" "); bluetooth.print(probability[4]);
-          bluetooth.print(" "); bluetooth.println(probability[5]);
+          bluetooth.print("P "); bluetooth.print(probability[0], 6);
+          bluetooth.print(" "); bluetooth.print(probability[1], 6);
+          bluetooth.print(" "); bluetooth.print(probability[2], 6);
+          bluetooth.print(" "); bluetooth.print(probability[3], 6);
+          bluetooth.print(" "); bluetooth.print(probability[4], 6);
+          bluetooth.print(" "); bluetooth.println(probability[5], 6);
         }
       } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
         digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
@@ -306,7 +296,7 @@ void reset() {
   dutyCycle = 75;
   rotateDegree = 30;
   for(int x = 0; x < 6; x++){
-      probability[x] = 0.167; // Set max attempts to learn
+      probability[x] = 0.1666667; // Set max attempts to learn
     }
   }
 

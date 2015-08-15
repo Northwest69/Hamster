@@ -1,5 +1,5 @@
 /* Hamster
- Software: 0.6.0
+ Software: 1.0.0
  Created by Peter Chau
  Start Date: August 9, 2015
  */
@@ -18,7 +18,7 @@ Textfield attemptsTextfield, maxTextfield, probabilityTextfield;
 
 public int dutyCycle = 75;
 public float rotateDegree = 30;
-public String probabilities = "0.167 0.167 0.167 0.167 0.167 0.167";
+public String probabilities = "0.166667 0.166667 0.166667 0.166667 0.166667 0.166667";
 
 int[] dutyCycleSlider = {
   250, 50
@@ -62,31 +62,37 @@ int[] reset = {
   400, 175
 };
 int[] save = {
-  300, 250
-};
-int[] load = {
   350, 250
 };
+int[] load = {
+  400, 250
+};
+
+int foreground = #FF8686;
+int background = #AA0000;
+int active = #FF2929;
+int canvas = #FFB2B2;
+
 void setup() {
   String portName = Serial.list()[1]; //1 is bluetooth, 2 is serial
   myPort = new Serial(this, portName, 38400);
   myPort.clear();
 
-  size(1000, 350);
+  size(500, 350);
   background(100);
 
   /* GUI interface */
   myControls = new ControlP5(this);
-  dutySlider = myControls.addSlider("dutyCycle", 0, 100, dutyCycle, dutyCycleSlider[0], dutyCycleSlider[1], 10, 137);
-  degreeSlider = myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 137);
-  maxTextfield = myControls.addTextfield("Max Attempts").setPosition(maxAttempt[0], maxAttempt[1]).setText(maxAttempts).setSize(50, 25).setAutoClear(false);
-  attemptsTextfield = myControls.addTextfield("Current Attempts").setPosition(learningAttempt[0], learningAttempt[1]).setText(attempts).setSize(50, 25).setAutoClear(false);
-  probabilityTextfield = myControls.addTextfield("Probabilities").setPosition(probability[0], probability[1]).setText(probabilities).setSize(200, 25).setAutoClear(false);
+  dutySlider = myControls.addSlider("dutyCycle", 0, 100, dutyCycle, dutyCycleSlider[0], dutyCycleSlider[1], 10, 137).setColorForeground(foreground).setColorActive(active).setColorBackground(background);
+  degreeSlider = myControls.addSlider("rotateDegree", 1, 360, rotateDegree, rotateDegreeSlider[0], rotateDegreeSlider[1], 10, 137).setColorForeground(foreground).setColorActive(active).setColorBackground(background);
+  maxTextfield = myControls.addTextfield("Max Attempts").setPosition(maxAttempt[0], maxAttempt[1]).setText(maxAttempts).setSize(50, 25).setAutoClear(false).setColorForeground(foreground).setColorActive(active).setColorBackground(background);
+  attemptsTextfield = myControls.addTextfield("Current Attempts").setPosition(learningAttempt[0], learningAttempt[1]).setText(attempts).setSize(50, 25).setAutoClear(false).setColorForeground(foreground).setColorActive(active).setColorBackground(background);
+  probabilityTextfield = myControls.addTextfield("Probabilities").setPosition(probability[0], probability[1]).setText(probabilities).setSize(275, 25).setAutoClear(false).setColorForeground(foreground).setColorActive(active).setColorBackground(background);
 
   myControls.addButton("Forward")
     .setPosition(forward[0], forward[1])
     .setSize(50, 50)
-    .setValue(100)
+    .setValue(100).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -99,7 +105,7 @@ void setup() {
   myControls.addButton("Backward")
     .setPosition(backward[0], backward[1])
     .setSize(50, 50)
-    .setValue(100)
+    .setValue(100).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -112,7 +118,7 @@ void setup() {
   myControls.addButton("Right")
     .setPosition(right[0], right[1])
     .setSize(50, 50)
-    .setValue(100)
+    .setValue(100).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -125,7 +131,7 @@ void setup() {
   myControls.addButton("Left")
     .setPosition(left[0], left[1])
     .setSize(50, 50)
-    .setValue(100)
+    .setValue(100).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -138,7 +144,7 @@ void setup() {
   myControls.addButton("Stop")
     .setPosition(stop[0], stop[1])
     .setSize(50, 50)
-    .setValue(100)
+    .setValue(100).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -151,7 +157,7 @@ void setup() {
   myControls.addButton("Set")
     .setPosition(set[0], set[1])
     .setSize(50, 25)
-    .setValue(0)
+    .setValue(0).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -172,7 +178,7 @@ void setup() {
   myControls.addButton("Reset")
     .setPosition(reset[0], reset[1])
     .setSize(50, 25)
-    .setValue(0)
+    .setValue(0).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -182,7 +188,7 @@ void setup() {
         dutyCycle = 75;
         rotateDegree = 30;
         maxAttempts = "500";
-        probabilities = "0.167 0.167 0.167 0.167 0.167 0.167";
+        probabilities = "0.166667 0.166667 0.166667 0.166667 0.166667 0.166667";
         attemptsTextfield.setValue(attempts);
         dutySlider.setValue(dutyCycle);
         degreeSlider.setValue(rotateDegree);
@@ -195,13 +201,12 @@ void setup() {
     myControls.addButton("Save")
     .setPosition(save[0], save[1])
     .setSize(50, 25)
-    .setValue(0)
+    .setValue(0).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
         String[] loadFile = loadStrings("probabilities.txt");
-        String [] saveFile = loadFile;
-        saveFile = splice(saveFile, probabilities, loadFile.length);
+        String[] saveFile = splice(loadFile, probabilities, loadFile.length);
         saveStrings("probabilities.txt", saveFile);
         println("Probabilities Saved!");
         
@@ -212,7 +217,7 @@ void setup() {
       myControls.addButton("Load")
     .setPosition(load[0], load[1])
     .setSize(50, 25)
-    .setValue(0)
+    .setValue(0).setColorForeground(foreground).setColorActive(active).setColorBackground(background)
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
@@ -235,7 +240,7 @@ println("Probabilities could not be loaded");
 }
 
 void draw() {
-  background(100);
+  background(canvas);
 
   /* Send command if keyboard button pressed */
   if (keyPressed == true) {

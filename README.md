@@ -18,13 +18,14 @@ Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + 
 
 To do:
 ------
-   Graph probabilities 2D then 3D
-   Save/Load more details
-   	attempts, dutycycle, rotatedegree
    Optimize Code
    
 Log:
 ----
+###8/14/2015 1.6.0 / 1.0.0
+	Added more decimals to display probabilities
+	Added new color palette
+
 ###8/13/2015 1.5.0 / 0.7.0
 	Update reset command from processing to Arduino
 		All fields always match Arduino
