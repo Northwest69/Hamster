@@ -16,9 +16,9 @@ ControlP5 myControls;
 Slider dutySlider, degreeSlider;
 Textfield attemptsTextfield, maxTextfield, probabilityTextfield;
 
-public int dutyCycle = 75;
+int dutyCycle = 75;
 public float rotateDegree = 30;
-public String probabilities = "0.166667 0.166667 0.166667 0.166667 0.166667 0.166667";
+public String probabilities = "0.16667 0.16667 0.16667 0.16667 0.16667 0.16667";
 
 int[] dutyCycleSlider = {
   250, 50
@@ -161,16 +161,16 @@ void setup() {
     .addCallback(new CallbackListener() {
     public void controlEvent(CallbackEvent event) {
       if (event.getAction() == ControlP5.ACTION_PRESSED) {
-        myPort.write("S " + dutyCycle + "\r");
+        myPort.write("S " + str(dutyCycle) + "\r");
         println("S " + dutyCycle + "\r");  
-        myPort.write("T " + rotateDegree + "\r");
+        myPort.write("T " + str(rotateDegree) + "\r");
         println("T " + rotateDegree + "\r");
         maxAttempts = myControls.get(Textfield.class, "Max Attempts").getText();
         myPort.write("L " + maxAttempts + "\r");
         println("L " + maxAttempts + "\r");
         probabilities = myControls.get(Textfield.class, "Probabilities").getText();
-        myPort.write("P " + probabilities + "\r");
-        println("P " + probabilities + "\r");      
+        //myPort.write("P " + probabilities + "\r");
+        //println("P " + probabilities + "\r");      
     }
     }
   }
@@ -188,7 +188,7 @@ void setup() {
         dutyCycle = 75;
         rotateDegree = 30;
         maxAttempts = "500";
-        probabilities = "0.166667 0.166667 0.166667 0.166667 0.166667 0.166667";
+        probabilities = "0.16667 0.16667 0.16667 0.16667 0.16667 0.16667";
         attemptsTextfield.setValue(attempts);
         dutySlider.setValue(dutyCycle);
         degreeSlider.setValue(rotateDegree);
@@ -262,16 +262,16 @@ void draw() {
         println("D 6\r");
       }
     } else if (key == ENTER) {
-      myPort.write("S " + dutyCycle + "\r");
+      myPort.write("S " + str(dutyCycle) + "\r");
       println("S " + dutyCycle + "\r");  
-      myPort.write("T " + rotateDegree + "\r");
+      myPort.write("T " + str(rotateDegree) + "\r");
       println("T " + rotateDegree + "\r");
       maxAttempts = myControls.get(Textfield.class, "Max Attempts").getText();
       myPort.write("L " + maxAttempts + "\r");
       println("L " + maxAttempts + "\r");
-              probabilities = myControls.get(Textfield.class, "Probabilities").getText();
-        myPort.write("P " + probabilities + "\r");
-        println("P " + probabilities + "\r");   
+      probabilities = myControls.get(Textfield.class, "Probabilities").getText();
+      // myPort.write("P " + probabilities + "\r");
+      //  println("P " + probabilities + "\r");   
     }
   }
 

@@ -50,7 +50,7 @@ const float probabilityFloor = 0.01; // Set probability error to 1%
 boolean probabilityCheck = false; // Counter for checking if probabilities high threshold
 int maxAttempts = 500; // Set max attempts to learn
 int learningAttempts = 0; // Set initial attempts to learn
-float probability[] = {0.166667, 0.166667, 0.166667, 0.166667, 0.166667, 0.166667}; // Set equal initial probabilities
+float probability[] = {0.16667, 0.16667, 0.16667, 0.16667, 0.16667, 0.16667}; // Set equal initial probabilities
 float probabilityRemainder; // To hold remaining probability when floor has been reached, then split up amoung other probabilities
 
 /* Ultrasonic Rangefinder constants and variables */
@@ -182,13 +182,14 @@ void loop() {
           }
 
           learningAttempts++; // Increase learning tracker
+          
           bluetooth.print("C "); bluetooth.println(learningAttempts);
-          bluetooth.print("P "); bluetooth.print(probability[0], 6);
-          bluetooth.print(" "); bluetooth.print(probability[1], 6);
-          bluetooth.print(" "); bluetooth.print(probability[2], 6);
-          bluetooth.print(" "); bluetooth.print(probability[3], 6);
-          bluetooth.print(" "); bluetooth.print(probability[4], 6);
-          bluetooth.print(" "); bluetooth.println(probability[5], 6);
+          bluetooth.print("P "); bluetooth.print(String(probability[0], 6));
+          bluetooth.print(" "); bluetooth.print(String(probability[1], 6));
+          bluetooth.print(" "); bluetooth.print(String(probability[2], 6));
+          bluetooth.print(" "); bluetooth.print(String(probability[3], 6));
+          bluetooth.print(" "); bluetooth.print(String(probability[4], 6));
+          bluetooth.print(" "); bluetooth.println(String(probability[5], 6));
         }
       } else if (modeState == LOW || (learningAttempts >= maxAttempts)) {
         digitalWrite(modeLED, LOW); // Turn off Learning Mode LED
