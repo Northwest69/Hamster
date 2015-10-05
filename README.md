@@ -4,21 +4,22 @@ Firmware: 1.3.123
 Created by Peter Chau
 Start Date: June 5, 2015
 
-Hamster checks if ultraSensor sees anything 40 cm in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward. 
+Hamster checks if ultraSensor sees anything in front of it. If it does, it chooses an random action based on a set of probabilities. Otherwise, Hamster drives forward. 
 
-When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried 100 times. The blue light is on when it's in 'Learning Mode'!
+When Hamster is in 'Learning Mode', it evaluates it's actions and modifies the probability set until it's tried a set amount of times. The blue light is on when it's in 'Learning Mode'!
 
 When Hamster is in 'Roam Mode', it uses the probability set to avoid objects!
 
 When Hamster is in 'Standby Mode', it does nothing until it sees something. When it does see something, it enters 'Roam Mode'
 
-Data is sent to PC via bluetooth serial terminal.
+Data is sent to Windows or Linux machine via bluetooth serial terminal.
 
 Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Blue tooth Shield HC-06, HMC5883L triple axis compass
 
 To do:
 ------
-   Optimize Code
+   Implement human sensor
+   Control via web application
    
 Log:
 ----
@@ -153,31 +154,3 @@ Log:
    Installed DVR8833 library
    Mapped dutyCycle to motorSpeed
    I seem to have fired my Arduino UNO. Computer won't recognize it however when plugged into the wall via USB, the board works fine.
-
-Functions:
-==========
-
-###void driveTrain(int instruction, int dutyCycle, float currentHeading)
-Instructions
-   0   Forwards
-   1   Backwards
-   2   Rotate right by degree
-   3   Rotate left by degree
-   4   Rotate right
-   5   Rotate left
-   6   Stop
-Duty Cycle
-   0% - 100%
-
-###void statusLED(int status)
-Statuses
-   0   Green   Ready
-   1   Red   Object Avoidance
-   2   Blue   Action Success
-   3   Purple   Wander
-   4   Light Blue   Ping
-   5   Light Red    Action Failed
-
-###int weightedRandom(float* weights)
-Weights
-   Action Probabilities
