@@ -15,11 +15,6 @@ When Hamster is in 'Standby Mode', it does nothing until it sees something. When
 Data is sent to Windows or Linux machine via bluetooth serial terminal.
 
 Hardware: Arduino Uno, TI DRV8833 Dual H-Bridge Motor Driver, HC-SR04 Ultra01 + Ultrasonic Range Finder, Blue tooth Shield HC-06, HMC5883L triple axis compass
-
-To do:
-------
-   Implement human sensor
-   Control via web application
    
 Log:
 ----
